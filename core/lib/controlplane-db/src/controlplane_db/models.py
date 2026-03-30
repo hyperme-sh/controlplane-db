@@ -84,8 +84,9 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False)
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    password: Mapped[str] = mapped_column(Text, nullable=False)
+    password: Mapped[str | None] = mapped_column(Text, nullable=True)
     sso_provider_id: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    keycloak_sub: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
 
 class Role(Base):
