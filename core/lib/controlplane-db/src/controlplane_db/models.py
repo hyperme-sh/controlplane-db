@@ -16,6 +16,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     func,
     text,
 )
@@ -717,6 +718,31 @@ class MarketplaceListing(Base):
     is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
+class MarketplaceSellerProfile(Base):
+    """Kafka user.created → seller verification (tenant-scoped)."""
+
+    __tablename__ = "marketplace_seller_profiles"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "user_id", name="uq_mkt_seller_tenant_user"),
+        Index("ix_mkt_seller_profiles_tenant", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="verified")
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class AiInferenceRecord(Base):
     """One metered LLM inference row (tenant-scoped via RLS)."""
 
@@ -748,6 +774,68 @@ class AiInferenceRecord(Base):
         ForeignKey("crypto_agent_budgets.id", ondelete="SET NULL"),
         nullable=True,
     )
+
+
+class AiBudgetEventAudit(Base):
+    """Append-only mirror of budget.allocated.v1 for observability."""
+
+    __tablename__ = "ai_budget_event_audit"
+    __table_args__ = (Index("ix_ai_budget_audit_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    budget_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("crypto_agent_budgets.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    delta_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    allocated_after: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    ceiling_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class AiAgentEntitlement(Base):
+    """Buyer entitlement after purchasing an agent listing (Kafka purchase.completed)."""
+
+    __tablename__ = "ai_agent_entitlements"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "purchase_id", name="uq_ai_agent_ent_tenant_purchase"),
+        Index("ix_ai_agent_ent_buyer", "tenant_id", "buyer_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    buyer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    purchase_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("marketplace_purchases.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    listing_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("marketplace_listings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    license_key_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 class MarketplacePurchase(Base):
