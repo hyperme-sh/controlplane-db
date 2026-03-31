@@ -838,6 +838,32 @@ class AiAgentEntitlement(Base):
     license_key_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
+class ApiKey(Base):
+    """Tenant-scoped API keys (hashed secret); validated by api-keys-service / gateway."""
+
+    __tablename__ = "api_keys"
+    __table_args__ = (
+        Index("ix_api_keys_tenant", "tenant_id"),
+        UniqueConstraint("key_prefix", name="uq_api_keys_prefix"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    key_prefix: Mapped[str] = mapped_column(String(32), nullable=False)
+    secret_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    scopes: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    created_by_sub: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class MarketplacePurchase(Base):
     __tablename__ = "marketplace_purchases"
 
