@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     DateTime,
     ForeignKey,
@@ -310,6 +311,34 @@ class SociaclRecoverySession(Base):
     metadata_: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class CryptoAgentBudget(Base):
+    """Solana-style budget ceiling per owner/mint; allocation tracked in-app (no chain custody here)."""
+
+    __tablename__ = "crypto_agent_budgets"
+    __table_args__ = (Index("ix_crypto_agent_budgets_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    owner_pubkey: Mapped[str] = mapped_column(Text, nullable=False)
+    mint_pubkey: Mapped[str] = mapped_column(Text, nullable=False)
+    ceiling_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    allocated_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
 
