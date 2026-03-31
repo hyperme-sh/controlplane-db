@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     func,
@@ -713,6 +715,39 @@ class MarketplaceListing(Base):
         "metadata", JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )
     is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class AiInferenceRecord(Base):
+    """One metered LLM inference row (tenant-scoped via RLS)."""
+
+    __tablename__ = "ai_inference_records"
+    __table_args__ = (
+        Index("ix_ai_inference_tenant", "tenant_id"),
+        Index("ix_ai_inference_user", "tenant_id", "user_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    model: Mapped[str] = mapped_column(String(256), nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    cost_usd: Mapped[Decimal] = mapped_column(Numeric(24, 12), nullable=False)
+    billing_mode: Mapped[str] = mapped_column(String(32), nullable=False)
+    budget_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("crypto_agent_budgets.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
 
 class MarketplacePurchase(Base):
