@@ -39,7 +39,12 @@ class Tenant(Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     custom_domain: Mapped[str | None] = mapped_column(String(512), unique=True, nullable=True)
-    custom_domain_status: Mapped[str] = mapped_column(String(64), default="failed", nullable=False)
+    custom_domain_status: Mapped[str] = mapped_column(
+        String(64),
+        default="failed",
+        server_default=text("'failed'"),
+        nullable=False,
+    )
     features: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     subscription_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
@@ -87,6 +92,10 @@ class User(Base):
     password: Mapped[str | None] = mapped_column(Text, nullable=True)
     sso_provider_id: Mapped[str | None] = mapped_column(String(512), nullable=True)
     keycloak_sub: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    sociacl_attributes: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
 
 class Role(Base):
@@ -123,6 +132,90 @@ class Role(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     permissions: Mapped[list] = mapped_column(
         JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+    __table_args__ = (
+        Index(
+            "uq_organizations_tenant_legal_name",
+            "tenant_id",
+            "legal_name",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    legal_name: Mapped[str] = mapped_column(String(512), nullable=False)
+
+
+class Group(Base):
+    __tablename__ = "groups"
+    __table_args__ = (
+        Index(
+            "uq_groups_tenant_name",
+            "tenant_id",
+            "name",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("roles.id", ondelete="RESTRICT"), nullable=False
+    )
+
+
+class UserGroupMembership(Base):
+    __tablename__ = "user_group_memberships"
+    __table_args__ = (
+        Index(
+            "uq_user_group_memberships_user_group",
+            "user_id",
+            "group_id",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id", ondelete="CASCADE"), nullable=False
     )
 
 
