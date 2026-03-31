@@ -17,6 +17,7 @@ All ORM models that include `tenant_id` are covered by migrations that **ENABLE 
 | `acl_casbin_rules` | `20250330_0005_acl_casbin_rls` |
 | `sociacl_share_links`, `sociacl_recovery_sessions` | `20250330_0006_sociacl_shr` |
 | `crypto_agent_budgets` | `20250330_0007_crypto_bdg` |
+| `marketplace_listings`, `marketplace_purchases` | `20250330_0008_marketplace_rls` |
 
 The **`tenants`** registry table has no `tenant_id` column; it is not isolated with the same tenant-scoped policy pattern (admin / platform access only).
 
