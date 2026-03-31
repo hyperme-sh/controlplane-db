@@ -16,20 +16,21 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("keycloak_sub", sa.String(512), nullable=True))
-    op.create_index(
-        "ix_users_keycloak_sub_unique",
-        "users",
-        ["keycloak_sub"],
-        unique=True,
-        postgresql_where=sa.text("keycloak_sub IS NOT NULL"),
+    # 0001 uses metadata.create_all(); current models already include keycloak_sub and
+    # nullable password. This revision must stay for DBs that ran an older 0001, and be
+    # a no-op when the schema already matches.
+    op.execute(
+        sa.text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS keycloak_sub VARCHAR(512)"
+        )
     )
-    op.alter_column(
-        "users",
-        "password",
-        existing_type=sa.Text(),
-        nullable=True,
+    op.execute(
+        sa.text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_keycloak_sub_unique "
+            "ON users (keycloak_sub) WHERE keycloak_sub IS NOT NULL"
+        )
     )
+    op.execute(sa.text("ALTER TABLE users ALTER COLUMN password DROP NOT NULL"))
 
 
 def downgrade() -> None:

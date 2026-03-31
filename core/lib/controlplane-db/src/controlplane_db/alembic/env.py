@@ -23,8 +23,12 @@ def get_sync_url() -> str:
     )
     if "+asyncpg" in url:
         url = url.replace("+asyncpg", "+psycopg")
+    elif url.startswith("postgresql+psycopg2://"):
+        url = "postgresql+psycopg://" + url.removeprefix("postgresql+psycopg2://")
     elif url.startswith("postgresql://") and "+" not in url.split("://", 1)[0]:
         url = "postgresql+psycopg://" + url.split("postgresql://", 1)[1]
+    elif url.startswith("postgres://"):
+        url = "postgresql+psycopg://" + url.removeprefix("postgres://")
     return url
 
 
