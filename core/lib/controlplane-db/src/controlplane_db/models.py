@@ -219,6 +219,39 @@ class UserGroupMembership(Base):
     )
 
 
+class AclCasbinRule(Base):
+    """Casbin policy rows; scoped by tenant_id + RLS. Used by acl-service adapter."""
+
+    __tablename__ = "acl_casbin_rules"
+    __table_args__ = (Index("ix_acl_casbin_rules_tenant", "tenant_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    ptype: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v0: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v1: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v2: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v3: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v4: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    v5: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    def __str__(self) -> str:
+        arr = [self.ptype or ""]
+        for v in (self.v0, self.v1, self.v2, self.v3, self.v4, self.v5):
+            if v is None:
+                break
+            arr.append(v)
+        return ", ".join(arr)
+
+    def __repr__(self) -> str:
+        return f'<AclCasbinRule {self.id}: "{str(self)}">'
+
+
 class UserPasswordReset(Base):
     __tablename__ = "user_password_resets"
 
