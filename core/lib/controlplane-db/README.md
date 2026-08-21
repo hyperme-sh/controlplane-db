@@ -18,6 +18,9 @@ All ORM models that include `tenant_id` are covered by migrations that **ENABLE 
 | `sociacl_share_links`, `sociacl_recovery_sessions` | `20250330_0006_sociacl_shr` |
 | `crypto_agent_budgets` | `20250330_0007_crypto_bdg` |
 | `marketplace_listings`, `marketplace_purchases` | `20250330_0008_marketplace_rls` |
+| `ai_inference_records` | `20250330_0009_ai_inference_rls` |
+| `marketplace_seller_profiles`, `ai_budget_event_audit`, `ai_agent_entitlements` | `20250330_0010_marketplace_seller_ai_entitlements_rls` |
+| `api_keys` | `20250330_0011_api_keys` — **no RLS**; app enforces tenant on CRUD |
 
 The **`tenants`** registry table has no `tenant_id` column; it is not isolated with the same tenant-scoped policy pattern (admin / platform access only).
 
