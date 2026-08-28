@@ -892,3 +892,257 @@ class MarketplacePurchase(Base):
     billing_record_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("billing_records.id", ondelete="SET NULL"), nullable=True
     )
+
+
+class HypermeshHardwareClass(Base):
+    """Hypermesh hardware class registry (one marketplace tenant)."""
+
+    __tablename__ = "hypermesh_hardware_classes"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "class_id", name="uq_hm_hw_class_tenant_id"),
+        Index("ix_hm_hw_classes_tenant", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    vendor: Mapped[str] = mapped_column(String(64), nullable=False)
+    sku: Mapped[str] = mapped_column(String(128), nullable=False)
+    module: Mapped[str] = mapped_column(String(64), nullable=False)
+    memory_gb: Mapped[int] = mapped_column(Integer, nullable=False)
+    public_sku: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    path_b_suite_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    hourly_rate_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    advertised_envelope: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class HypermeshDevice(Base):
+    """Hypermesh enrolled box. Secrets are hashes only."""
+
+    __tablename__ = "hypermesh_devices"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "serial", name="uq_hm_devices_tenant_serial"),
+        Index("ix_hm_devices_tenant", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    host_org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    serial: Mapped[str] = mapped_column(String(128), nullable=False)
+    path_a: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    path_b_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    loaded_instance_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    loaded_catalog_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    enroll_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    enroll_token_used_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    enroll_token_prefix: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    device_secret_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    credential_prefix: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    enrolled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    last_heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_path_b_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_image_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    last_loaded_model_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    last_uptime_s: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_thermal_c: Mapped[float | None] = mapped_column(Numeric, nullable=True)
+    usdc_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshCatalogEntry(Base):
+    """Hypermesh P2 catalog row. file_hash stays null until a real repo@digest is pinned."""
+
+    __tablename__ = "hypermesh_catalog"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "catalog_id", name="uq_hm_catalog_tenant_id"),
+        Index("ix_hm_catalog_tenant", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    catalog_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    artifact_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    file_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    quant: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    format: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    runtime: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    advertised_context: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    certified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    per_1k_token_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    loaded_hour_min_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class HypermeshLease(Base):
+    __tablename__ = "hypermesh_leases"
+    __table_args__ = (Index("ix_hm_leases_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    renter_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    catalog_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    device_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    host_org_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    reserved_hours: Mapped[int] = mapped_column(Integer, nullable=False)
+    billing_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    stripe_session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    checkout_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    gross_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    loaded_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HypermeshJob(Base):
+    __tablename__ = "hypermesh_jobs"
+    __table_args__ = (Index("ix_hm_jobs_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    suite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    image_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    catalog_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    image_digest: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    runtime: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    ticket: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class HypermeshTunnel(Base):
+    """One WireGuard peer per host. The lease is a ticket. Private keys never go to Kafka."""
+
+    __tablename__ = "hypermesh_tunnels"
+    __table_args__ = (Index("ix_hm_tunnels_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    lease_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    assigned_router_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    endpoint: Mapped[str] = mapped_column(String(256), nullable=False)
+    server_public_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    server_private_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    peer_public_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    peer_private_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    allowed_ips: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_address: Mapped[str] = mapped_column(String(64), nullable=False)
+    ack_applied: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HypermeshPayout(Base):
+    __tablename__ = "hypermesh_payouts"
+    __table_args__ = (Index("ix_hm_payouts_tenant", "tenant_id"),)
+
+    lease_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    host_org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    host_pubkey: Mapped[str] = mapped_column(String(128), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    gross_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    stripe_cut_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    platform_take_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    take_bps: Mapped[int] = mapped_column(Integer, nullable=False)
+    net_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    net_usdc_atoms: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class HypermeshRouter(Base):
+    """Fyber test-plane router. Service secret is hashed; not a host or renter key."""
+
+    __tablename__ = "hypermesh_routers"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="uq_hm_routers_tenant_name"),
+        Index("ix_hm_routers_tenant", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    secret_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    credential_prefix: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshRouterMetric(Base):
+    """Tunnel/session counters from the Fyber router. No prompts, no keys."""
+
+    __tablename__ = "hypermesh_router_metrics"
+    __table_args__ = (Index("ix_hm_router_metrics_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    router_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    tunnel_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    bytes_in: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    bytes_out: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    handshake_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshTicket(Base):
+    """Signed #26 lease ticket. The blob is the grant; this is not a WG key."""
+
+    __tablename__ = "hypermesh_tickets"
+    __table_args__ = (Index("ix_hm_tickets_tenant", "tenant_id"),)
+
+    lease_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    assigned_router_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    client_address: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    exp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ticket: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class HypermeshRevokedTicket(Base):
+    """Lease ids the router must stop honoring. Does not drop the host WG peer."""
+
+    __tablename__ = "hypermesh_revoked_tickets"
+    __table_args__ = (Index("ix_hm_revoked_tickets_tenant", "tenant_id"),)
+
+    lease_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
