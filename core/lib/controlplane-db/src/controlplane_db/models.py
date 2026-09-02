@@ -862,6 +862,7 @@ class ApiKey(Base):
     scopes: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     created_by_sub: Mapped[str | None] = mapped_column(String(512), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False, default="renter")
 
 
 class MarketplacePurchase(Base):
@@ -1009,6 +1010,7 @@ class HypermeshLease(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False, default="renter")
 
 
 class HypermeshJob(Base):
@@ -1134,6 +1136,7 @@ class HypermeshTicket(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     exp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ticket: Mapped[str] = mapped_column(Text, nullable=False)
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False, default="renter")
 
 
 class HypermeshRevokedTicket(Base):
