@@ -955,6 +955,7 @@ class HypermeshDevice(Base):
     last_thermal_c: Mapped[float | None] = mapped_column(Numeric, nullable=True)
     usdc_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    sell_state: Mapped[str] = mapped_column(String(16), nullable=False, default="n/a")
 
 
 class HypermeshCatalogEntry(Base):
@@ -1033,6 +1034,8 @@ class HypermeshJob(Base):
     image_digest: Mapped[str | None] = mapped_column(String(256), nullable=True)
     runtime: Mapped[str | None] = mapped_column(String(64), nullable=True)
     ticket: Mapped[str | None] = mapped_column(Text, nullable=True)
+    until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sell_state: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
 
 class HypermeshTunnel(Base):
