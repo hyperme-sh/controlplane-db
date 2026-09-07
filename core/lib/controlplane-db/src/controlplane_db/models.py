@@ -1154,6 +1154,38 @@ class HypermeshRevokedTicket(Base):
     )
 
 
+class HypermeshAuditorTicket(Base):
+    """fyber.auditor.ticket/v0 plane inbox. Site receipt remains actuation SoT."""
+
+    __tablename__ = "hypermesh_auditor_tickets"
+    __table_args__ = (
+        Index("ix_hm_auditor_tickets_tenant", "tenant_id"),
+        Index("ix_hm_auditor_tickets_tenant_site", "tenant_id", "site_id"),
+    )
+
+    ticket_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    site_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    ticket_schema: Mapped[str] = mapped_column(String(64), nullable=False)
+    trace_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    receipt_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    held_call_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    reason_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    severity: Mapped[str] = mapped_column(String(16), nullable=False)
+    text_redacted: Mapped[str] = mapped_column(String(1000), nullable=False)
+    display: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    resolution: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    patch: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    notes_redacted: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    site_acked_receipt_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class HypermeshSiteToken(Base):
     """Panopticon machine/site token. SHA-256 at rest. Scoped to site_id.
 
