@@ -1152,3 +1152,30 @@ class HypermeshRevokedTicket(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
+
+
+class HypermeshSiteToken(Base):
+    """Panopticon machine/site token. SHA-256 at rest. Scoped to site_id.
+
+    Not hm_rtr_, not host device_secret, not a renter portal API key.
+    """
+
+    __tablename__ = "hypermesh_site_tokens"
+    __table_args__ = (
+        UniqueConstraint("secret_hash", name="uq_hm_site_tokens_secret_hash"),
+        Index("ix_hm_site_tokens_tenant", "tenant_id"),
+        Index("ix_hm_site_tokens_tenant_site", "tenant_id", "site_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    site_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    secret_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    credential_prefix: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    created_by_sub: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
