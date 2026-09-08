@@ -928,6 +928,7 @@ class HypermeshDevice(Base):
     __table_args__ = (
         UniqueConstraint("tenant_id", "serial", name="uq_hm_devices_tenant_serial"),
         Index("ix_hm_devices_tenant", "tenant_id"),
+        Index("ix_hm_devices_tenant_site", "tenant_id", "site_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
@@ -956,6 +957,7 @@ class HypermeshDevice(Base):
     usdc_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sell_state: Mapped[str] = mapped_column(String(16), nullable=False, default="n/a")
+    site_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
 
 class HypermeshCatalogEntry(Base):
