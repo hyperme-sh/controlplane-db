@@ -958,6 +958,7 @@ class HypermeshDevice(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sell_state: Mapped[str] = mapped_column(String(16), nullable=False, default="n/a")
     site_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    role: Mapped[str] = mapped_column(String(16), nullable=False, default="host")
 
 
 class HypermeshCatalogEntry(Base):
@@ -1101,6 +1102,7 @@ class HypermeshRouter(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     secret_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     credential_prefix: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    role: Mapped[str] = mapped_column(String(16), nullable=False, default="router")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
