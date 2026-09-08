@@ -1190,6 +1190,39 @@ class HypermeshAuditorTicket(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class HypermeshPrivilegeGrant(Base):
+    """fyber.privilege_grant/v0 plane store. Docs-first; no schemas/ file."""
+
+    __tablename__ = "hypermesh_privilege_grants"
+    __table_args__ = (
+        Index("ix_hm_privilege_grants_tenant", "tenant_id"),
+        Index("ix_hm_privilege_grants_tenant_site", "tenant_id", "site_id"),
+        Index("ix_hm_privilege_grants_tenant_site_status", "tenant_id", "site_id", "status"),
+    )
+
+    grant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    site_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    grant_schema: Mapped[str] = mapped_column(String(64), nullable=False)
+    incident_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    trace_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    requested_by: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    reason_redacted: Mapped[str] = mapped_column(String(1000), nullable=False)
+    asks: Mapped[list] = mapped_column(JSONB, nullable=False)
+    rails_profile_requested: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    ttl_s_requested: Mapped[int] = mapped_column(Integer, nullable=False)
+    blast_radius: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    resolution: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    active_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    parent_grant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    ticket_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    integrity: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+
 class HypermeshSiteToken(Base):
     """Panopticon machine/site token. SHA-256 at rest. Scoped to site_id.
 
