@@ -89,7 +89,8 @@ def upgrade() -> None:
                 active_until TIMESTAMPTZ,
                 parent_grant_id UUID,
                 ticket_id UUID,
-                integrity JSONB
+                integrity JSONB,
+                idempotency_key VARCHAR(128)
             )
             """
         )
@@ -107,6 +108,25 @@ def upgrade() -> None:
         sa.text(
             "CREATE INDEX IF NOT EXISTS ix_hm_privilege_grants_tenant_site_status "
             f"ON {_TABLE} (tenant_id, site_id, status)"
+        )
+    )
+    op.execute(
+        sa.text(
+            "CREATE INDEX IF NOT EXISTS ix_hm_privilege_grants_tenant_site_incident "
+            f"ON {_TABLE} (tenant_id, site_id, incident_id)"
+        )
+    )
+    op.execute(
+        sa.text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_hm_privilege_grants_natural "
+            f"ON {_TABLE} (tenant_id, site_id, incident_id, trace_id)"
+        )
+    )
+    op.execute(
+        sa.text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_hm_privilege_grants_idem "
+            f"ON {_TABLE} (tenant_id, site_id, idempotency_key) "
+            "WHERE idempotency_key IS NOT NULL"
         )
     )
     _enable_rls(_TABLE)

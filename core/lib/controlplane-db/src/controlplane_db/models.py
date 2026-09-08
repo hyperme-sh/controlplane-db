@@ -1198,6 +1198,14 @@ class HypermeshPrivilegeGrant(Base):
         Index("ix_hm_privilege_grants_tenant", "tenant_id"),
         Index("ix_hm_privilege_grants_tenant_site", "tenant_id", "site_id"),
         Index("ix_hm_privilege_grants_tenant_site_status", "tenant_id", "site_id", "status"),
+        Index(
+            "uq_hm_privilege_grants_natural",
+            "tenant_id",
+            "site_id",
+            "incident_id",
+            "trace_id",
+            unique=True,
+        ),
     )
 
     grant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
@@ -1221,6 +1229,7 @@ class HypermeshPrivilegeGrant(Base):
     parent_grant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     ticket_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     integrity: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
 
 class HypermeshSiteToken(Base):
