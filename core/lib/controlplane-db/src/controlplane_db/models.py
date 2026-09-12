@@ -962,7 +962,11 @@ class HypermeshDevice(Base):
 
 
 class HypermeshCatalogEntry(Base):
-    """Hypermesh P2 catalog row. file_hash stays null until a real repo@digest is pinned."""
+    """Hypermesh P2 catalog row.
+
+    file_hash is GGUF content sha256 (null until soak stamps it).
+    image_digest is the OCI container ref for lease_start (null until pinned).
+    """
 
     __tablename__ = "hypermesh_catalog"
     __table_args__ = (
@@ -980,6 +984,7 @@ class HypermeshCatalogEntry(Base):
     artifact_name: Mapped[str] = mapped_column(String(256), nullable=False)
     class_id: Mapped[str] = mapped_column(String(64), nullable=False)
     file_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    image_digest: Mapped[str | None] = mapped_column(String(256), nullable=True)
     quant: Mapped[str | None] = mapped_column(String(32), nullable=True)
     format: Mapped[str | None] = mapped_column(String(32), nullable=True)
     runtime: Mapped[str | None] = mapped_column(String(64), nullable=True)
