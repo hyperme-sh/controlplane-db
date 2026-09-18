@@ -102,6 +102,36 @@ class User(Base):
     sociacl_attributes: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
 
+class UserWalletBinding(Base):
+    """One EIP-4361 wallet bound to one Keycloak person.
+
+    Stores the recovered address only. Never a SIWE signature or private key.
+    Person-scoped (keycloak_sub), not a second user and not tenant membership.
+    """
+
+    __tablename__ = "user_wallet_bindings"
+    __table_args__ = (
+        Index("uq_user_wallet_bindings_sub", "keycloak_sub", unique=True),
+        Index("uq_user_wallet_bindings_address", "wallet_address", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    keycloak_sub: Mapped[str] = mapped_column(String(512), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    wallet_address: Mapped[str] = mapped_column(String(42), nullable=False)
+    bound_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
 class Role(Base):
     __tablename__ = "roles"
     __table_args__ = (
