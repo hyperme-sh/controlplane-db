@@ -73,6 +73,19 @@ def upgrade() -> None:
             "ADD COLUMN IF NOT EXISTS schedule_hold BOOLEAN NOT NULL DEFAULT false"
         )
     )
+    # IF NOT EXISTS is a no-op when create_all already added the column
+    # without a server default. Force DEFAULT false for raw SQL inserts.
+    op.execute(
+        sa.text("ALTER TABLE hypermesh_devices ALTER COLUMN schedule_hold SET DEFAULT false")
+    )
+    op.execute(
+        sa.text(
+            "UPDATE hypermesh_devices SET schedule_hold = false WHERE schedule_hold IS NULL"
+        )
+    )
+    op.execute(
+        sa.text("ALTER TABLE hypermesh_devices ALTER COLUMN schedule_hold SET NOT NULL")
+    )
     op.execute(
         sa.text(
             f"""
