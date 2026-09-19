@@ -1,4 +1,4 @@
-"""Purpose on lease tickets and API keys (router-roadmap slice 3).
+"""Purpose on lease tickets and API keys (gateway roadmap slice 3).
 
 Revision ID: 0013_ticket_purpose
 Revises: 0012_hypermesh

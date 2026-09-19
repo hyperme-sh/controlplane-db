@@ -1091,7 +1091,7 @@ class HypermeshTunnel(Base):
     )
     lease_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    assigned_router_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    assigned_gateway_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     endpoint: Mapped[str] = mapped_column(String(256), nullable=False)
     server_public_key: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -1124,13 +1124,13 @@ class HypermeshPayout(Base):
     net_usdc_atoms: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
 
-class HypermeshRouter(Base):
+class HypermeshGateway(Base):
     """Fyber test-plane router. Service secret is hashed; not a host or renter key."""
 
-    __tablename__ = "hypermesh_routers"
+    __tablename__ = "hypermesh_gateways"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "name", name="uq_hm_routers_tenant_name"),
-        Index("ix_hm_routers_tenant", "tenant_id"),
+        UniqueConstraint("tenant_id", "name", name="uq_hm_gateways_tenant_name"),
+        Index("ix_hm_gateways_tenant", "tenant_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
@@ -1140,15 +1140,15 @@ class HypermeshRouter(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     secret_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     credential_prefix: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    role: Mapped[str] = mapped_column(String(16), nullable=False, default="router")
+    role: Mapped[str] = mapped_column(String(16), nullable=False, default="gateway")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-class HypermeshRouterMetric(Base):
+class HypermeshGatewayMetric(Base):
     """Tunnel/session counters from the Fyber router. No prompts, no keys."""
 
-    __tablename__ = "hypermesh_router_metrics"
-    __table_args__ = (Index("ix_hm_router_metrics_tenant", "tenant_id"),)
+    __tablename__ = "hypermesh_gateway_metrics"
+    __table_args__ = (Index("ix_hm_gateway_metrics_tenant", "tenant_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -1156,7 +1156,7 @@ class HypermeshRouterMetric(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
-    router_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    gateway_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     tunnel_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     bytes_in: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
@@ -1176,7 +1176,7 @@ class HypermeshTicket(Base):
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
     device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    assigned_router_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    assigned_gateway_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     client_address: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     exp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -1273,7 +1273,7 @@ class HypermeshPrivilegeGrant(Base):
 class HypermeshSiteToken(Base):
     """Panopticon machine/site token. SHA-256 at rest. Scoped to site_id.
 
-    Not hm_rtr_, not host device_secret, not a renter portal API key.
+    Not hm_gw_, not host device_secret, not a renter portal API key.
     """
 
     __tablename__ = "hypermesh_site_tokens"

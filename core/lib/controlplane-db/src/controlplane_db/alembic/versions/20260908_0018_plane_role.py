@@ -1,4 +1,4 @@
-"""Hypermesh enroll/join role pin (host | router | plane).
+"""Hypermesh enroll/join role pin (host | gateway | plane).
 
 Revision ID: 0018_plane_role
 Revises: 0017_device_site_id
@@ -24,12 +24,12 @@ def upgrade() -> None:
     )
     op.execute(
         sa.text(
-            "ALTER TABLE hypermesh_routers "
-            "ADD COLUMN IF NOT EXISTS role VARCHAR(16) NOT NULL DEFAULT 'router'"
+            "ALTER TABLE hypermesh_gateways "
+            "ADD COLUMN IF NOT EXISTS role VARCHAR(16) NOT NULL DEFAULT 'gateway'"
         )
     )
 
 
 def downgrade() -> None:
-    op.execute(sa.text("ALTER TABLE hypermesh_routers DROP COLUMN IF EXISTS role"))
+    op.execute(sa.text("ALTER TABLE hypermesh_gateways DROP COLUMN IF EXISTS role"))
     op.execute(sa.text("ALTER TABLE hypermesh_devices DROP COLUMN IF EXISTS role"))

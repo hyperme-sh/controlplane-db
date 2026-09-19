@@ -24,8 +24,8 @@ _TABLES = (
     "hypermesh_jobs",
     "hypermesh_tunnels",
     "hypermesh_payouts",
-    "hypermesh_routers",
-    "hypermesh_router_metrics",
+    "hypermesh_gateways",
+    "hypermesh_gateway_metrics",
     "hypermesh_tickets",
     "hypermesh_revoked_tickets",
 )
@@ -245,7 +245,7 @@ def upgrade() -> None:
                 tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
                 lease_id UUID NOT NULL,
                 device_id UUID NOT NULL,
-                assigned_router_id UUID,
+                assigned_gateway_id UUID,
                 status VARCHAR(32) NOT NULL,
                 endpoint VARCHAR(256) NOT NULL,
                 server_public_key VARCHAR(128) NOT NULL,
@@ -291,7 +291,7 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             """
-            CREATE TABLE IF NOT EXISTS hypermesh_routers (
+            CREATE TABLE IF NOT EXISTS hypermesh_gateways (
                 id UUID NOT NULL PRIMARY KEY,
                 tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
                 name VARCHAR(128) NOT NULL,
@@ -304,16 +304,16 @@ def upgrade() -> None:
         )
     )
     op.execute(
-        sa.text("CREATE INDEX IF NOT EXISTS ix_hm_routers_tenant ON hypermesh_routers (tenant_id)")
+        sa.text("CREATE INDEX IF NOT EXISTS ix_hm_gateways_tenant ON hypermesh_gateways (tenant_id)")
     )
 
     op.execute(
         sa.text(
             """
-            CREATE TABLE IF NOT EXISTS hypermesh_router_metrics (
+            CREATE TABLE IF NOT EXISTS hypermesh_gateway_metrics (
                 id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
                 tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-                router_id UUID NOT NULL,
+                gateway_id UUID NOT NULL,
                 tunnel_id UUID,
                 lease_id UUID,
                 bytes_in BIGINT NOT NULL DEFAULT 0,
@@ -326,8 +326,8 @@ def upgrade() -> None:
     )
     op.execute(
         sa.text(
-            "CREATE INDEX IF NOT EXISTS ix_hm_router_metrics_tenant "
-            "ON hypermesh_router_metrics (tenant_id)"
+            "CREATE INDEX IF NOT EXISTS ix_hm_gateway_metrics_tenant "
+            "ON hypermesh_gateway_metrics (tenant_id)"
         )
     )
 
@@ -340,7 +340,7 @@ def upgrade() -> None:
                 lease_id UUID NOT NULL PRIMARY KEY,
                 tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
                 device_id UUID NOT NULL,
-                assigned_router_id UUID NOT NULL,
+                assigned_gateway_id UUID NOT NULL,
                 client_address VARCHAR(64) NOT NULL,
                 status VARCHAR(32) NOT NULL,
                 exp TIMESTAMPTZ NOT NULL,
