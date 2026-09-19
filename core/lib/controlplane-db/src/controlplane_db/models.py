@@ -989,6 +989,9 @@ class HypermeshDevice(Base):
     sell_state: Mapped[str] = mapped_column(String(16), nullable=False, default="n/a")
     site_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     role: Mapped[str] = mapped_column(String(16), nullable=False, default="host")
+    schedule_hold: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
 
 
 class HypermeshCatalogEntry(Base):
@@ -1292,3 +1295,29 @@ class HypermeshSiteToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HypermeshHostCertOverride(Base):
+    """Host certification / AGX bench validation window. Plane hold + preempt + restore."""
+
+    __tablename__ = "hypermesh_host_cert_overrides"
+    __table_args__ = (
+        Index("ix_hm_host_cert_overrides_tenant", "tenant_id"),
+        Index("ix_hm_host_cert_overrides_tenant_device", "tenant_id", "device_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    preempt: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    preempted_lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    lease_stop_job_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    cert_job_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    held_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    fail_closed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
