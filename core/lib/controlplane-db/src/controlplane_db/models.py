@@ -1144,6 +1144,28 @@ class HypermeshGateway(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class HypermeshLeaseAudit(Base):
+    """Lease status history a customer can export. No prompts, no keys."""
+
+    __tablename__ = "hypermesh_lease_audit"
+    __table_args__ = (
+        Index("ix_hm_lease_audit_tenant", "tenant_id"),
+        Index("ix_hm_lease_audit_tenant_lease", "tenant_id", "lease_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    lease_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    catalog_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+
 class HypermeshGatewayMetric(Base):
     """Tunnel/session counters from the Fyber gateway. No prompts, no keys."""
 
