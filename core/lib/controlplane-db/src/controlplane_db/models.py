@@ -1125,7 +1125,7 @@ class HypermeshPayout(Base):
 
 
 class HypermeshGateway(Base):
-    """Fyber test-plane router. Service secret is hashed; not a host or renter key."""
+    """Fyber test-plane gateway. Service secret is hashed; not a host or renter key."""
 
     __tablename__ = "hypermesh_gateways"
     __table_args__ = (
@@ -1145,7 +1145,7 @@ class HypermeshGateway(Base):
 
 
 class HypermeshGatewayMetric(Base):
-    """Tunnel/session counters from the Fyber router. No prompts, no keys."""
+    """Tunnel/session counters from the Fyber gateway. No prompts, no keys."""
 
     __tablename__ = "hypermesh_gateway_metrics"
     __table_args__ = (Index("ix_hm_gateway_metrics_tenant", "tenant_id"),)
