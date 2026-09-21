@@ -21,6 +21,7 @@ All ORM models that include `tenant_id` are covered by migrations that **ENABLE 
 | `ai_inference_records` | `20250330_0009_ai_inference_rls` |
 | `marketplace_seller_profiles`, `ai_budget_event_audit`, `ai_agent_entitlements` | `20250330_0010_marketplace_seller_ai_entitlements_rls` |
 | `api_keys` | `20250330_0011_api_keys` — **no RLS**; app enforces tenant on CRUD |
+| `aiuditor_connections`, `aiuditor_approvals`, `aiuditor_policies`, `aiuditor_contracts`, `aiuditor_violations`, `aiuditor_catalog` | `20260921_0025_aiuditor_rls` — also `hypermesh_leases.contract_id` |
 
 The **`tenants`** registry table has no `tenant_id` column; it is not isolated with the same tenant-scoped policy pattern (admin / platform access only).
 
@@ -39,5 +40,5 @@ Configure `DATABASE_URL` for your sync driver (e.g. `postgresql+psycopg://...`) 
 Workspace package `core/tests` runs Testcontainers Postgres, migrates with Alembic, then asserts cross-tenant isolation under a restricted role. Requires Docker; set `SKIP_TESTCONTAINERS=1` to skip in CI without Docker.
 
 ```bash
-cd core/tests && uv run pytest tests/integration/test_rls_tenant_isolation.py -m integration -v
+cd core/tests && uv run pytest tests/integration/test_rls_tenant_isolation.py tests/integration/test_aiuditor_rls.py -m integration -v
 ```

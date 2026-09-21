@@ -1053,6 +1053,7 @@ class HypermeshLease(Base):
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     purpose: Mapped[str] = mapped_column(String(32), nullable=False, default="renter")
+    contract_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
 
 class HypermeshJob(Base):
@@ -1342,4 +1343,135 @@ class HypermeshHostCertOverride(Base):
     restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     fail_closed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AiuditorConnection(Base):
+    """AIuditor connection row. Hash only. Device secret stays on Hypermesh."""
+
+    __tablename__ = "aiuditor_connections"
+    __table_args__ = (
+        Index("ix_aiuditor_connections_tenant", "tenant_id"),
+        Index("ix_aiuditor_connections_tenant_lease", "tenant_id", "lease_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(16), nullable=False)
+    device_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    endpoint: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    credential_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AiuditorApproval(Base):
+    """AI-use hold. No prompt body. Not fyber.auditor."""
+
+    __tablename__ = "aiuditor_approvals"
+    __table_args__ = (Index("ix_aiuditor_approvals_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    connection_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False)
+    who: Mapped[str] = mapped_column(String(256), nullable=False)
+    why: Mapped[str] = mapped_column(String(16), nullable=False)
+    prompt_class: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    decision: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AiuditorPolicy(Base):
+    """Org allow/hold/deny. No prompt body."""
+
+    __tablename__ = "aiuditor_policies"
+    __table_args__ = (Index("ix_aiuditor_policies_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False)
+    prompt_class: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    connection_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    disposition: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AiuditorContract(Base):
+    """Spine §D grant. Not a handoff package. Not a chain SoT."""
+
+    __tablename__ = "aiuditor_contracts"
+    __table_args__ = (
+        Index("ix_aiuditor_contracts_tenant", "tenant_id"),
+        Index("ix_aiuditor_contracts_tenant_lease", "tenant_id", "lease_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    parties: Mapped[list] = mapped_column(JSONB, nullable=False)
+    meters: Mapped[list] = mapped_column(JSONB, nullable=False)
+    rail: Mapped[str] = mapped_column(String(32), nullable=False)
+    until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    dispute_tip: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    connection_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    signed_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AiuditorViolation(Base):
+    """Violation on a signed Contract. Dispute reads cert + audit."""
+
+    __tablename__ = "aiuditor_violations"
+    __table_args__ = (
+        Index("ix_aiuditor_violations_tenant", "tenant_id"),
+        Index("ix_aiuditor_violations_tenant_contract", "tenant_id", "contract_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    contract_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AiuditorCatalog(Base):
+    """AIuditor catalog row. Not a Hypermesh class or catalog. Not TURN."""
+
+    __tablename__ = "aiuditor_catalog"
+    __table_args__ = (Index("ix_aiuditor_catalog_tenant", "tenant_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    backend: Mapped[str] = mapped_column(String(32), nullable=False)
+    class_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    catalog_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    connection_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    meters: Mapped[list] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
