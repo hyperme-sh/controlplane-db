@@ -1122,6 +1122,7 @@ class HypermeshJob(Base):
     lease_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     catalog_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     image_digest: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    source_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
     runtime: Mapped[str | None] = mapped_column(String(64), nullable=True)
     ticket: Mapped[str | None] = mapped_column(Text, nullable=True)
     until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
