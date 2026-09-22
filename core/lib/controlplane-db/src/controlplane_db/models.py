@@ -196,6 +196,43 @@ class Organization(Base):
     legal_name: Mapped[str] = mapped_column(String(512), nullable=False)
 
 
+class OrganizationIdpLink(Base):
+    """Identity-provider org bound to one enterprise by its owner.
+
+    The external key is an Entra tenant id, a Google hosted domain, or a
+    GitHub org login. One key maps to one organization in the tenant.
+    """
+
+    __tablename__ = "organization_idp_links"
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id",
+            "provider",
+            "external_key",
+            name="uq_org_idp_provider_key",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    external_key: Mapped[str] = mapped_column(String(256), nullable=False)
+    linked_by_sub: Mapped[str] = mapped_column(String(512), nullable=False)
+
+
 class Group(Base):
     __tablename__ = "groups"
     __table_args__ = (
