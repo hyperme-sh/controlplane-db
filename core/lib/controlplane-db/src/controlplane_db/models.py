@@ -1067,6 +1067,12 @@ class HypermeshCatalogEntry(Base):
     tokens_per_sec: Mapped[float | None] = mapped_column(Float, nullable=True)
     per_1k_token_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     loaded_hour_min_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    origin: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="seed", server_default=text("'seed'")
+    )
+    admission_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
 
 
 class HypermeshLease(Base):
