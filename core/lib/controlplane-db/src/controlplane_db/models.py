@@ -1024,6 +1024,7 @@ class HypermeshCatalogEntry(Base):
     runtime: Mapped[str | None] = mapped_column(String(64), nullable=True)
     advertised_context: Mapped[int | None] = mapped_column(Integer, nullable=True)
     certified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    tokens_per_sec: Mapped[float | None] = mapped_column(Float, nullable=True)
     per_1k_token_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     loaded_hour_min_cents: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -1129,6 +1130,7 @@ class HypermeshScorecard(Base):
     image_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     runtime: Mapped[str] = mapped_column(String(64), nullable=False)
     prompt_pack: Mapped[str] = mapped_column(String(64), nullable=False)
+    image_digest: Mapped[str | None] = mapped_column(String(256), nullable=True)
     sample_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     decode_tok_s: Mapped[float | None] = mapped_column(Float, nullable=True)
     sustained: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
