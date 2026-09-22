@@ -80,6 +80,7 @@ def upgrade() -> None:
                 image_hash VARCHAR(128) NOT NULL,
                 runtime VARCHAR(64) NOT NULL,
                 prompt_pack VARCHAR(64) NOT NULL,
+                image_digest VARCHAR(256),
                 sample_ms INTEGER,
                 decode_tok_s DOUBLE PRECISION,
                 sustained BOOLEAN NOT NULL DEFAULT FALSE,
@@ -95,6 +96,12 @@ def upgrade() -> None:
         sa.text(f"CREATE INDEX IF NOT EXISTS ix_hm_scorecards_tenant ON {_TABLE} (tenant_id)")
     )
     _enable_rls(_TABLE)
+    op.execute(
+        sa.text(
+            "ALTER TABLE hypermesh_catalog "
+            "ADD COLUMN IF NOT EXISTS tokens_per_sec DOUBLE PRECISION"
+        )
+    )
 
 
 def downgrade() -> None:
