@@ -1030,6 +1030,9 @@ class HypermeshDevice(Base):
     schedule_hold: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
+    lab: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
 
 
 class HypermeshCatalogEntry(Base):
@@ -1544,3 +1547,87 @@ class AiuditorCatalog(Base):
     connection_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     meters: Mapped[list] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AiuditorEnvelope(Base):
+    """Lab class envelope. One artifact per class_id. Not a Hypermesh scorecard."""
+
+    __tablename__ = "aiuditor_envelopes"
+    __table_args__ = (
+        Index("ix_aiuditor_envelopes_tenant", "tenant_id"),
+        Index("ix_aiuditor_envelopes_tenant_class", "tenant_id", "class_id"),
+        UniqueConstraint(
+            "tenant_id",
+            "class_id",
+            "catalog_id",
+            name="uq_aiuditor_envelope_class_catalog",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    catalog_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    file_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    quant: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    runtime: Mapped[str] = mapped_column(String(64), nullable=False)
+    context: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fit: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    decode_tok_s: Mapped[float | None] = mapped_column(Float, nullable=True)
+    thermal_c: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AiuditorSuiteMember(Base):
+    """Core cert suite membership. Compact-cert jobs read this list."""
+
+    __tablename__ = "aiuditor_suite_members"
+    __table_args__ = (
+        Index("ix_aiuditor_suite_members_tenant", "tenant_id"),
+        Index("ix_aiuditor_suite_members_tenant_class", "tenant_id", "class_id"),
+        UniqueConstraint(
+            "tenant_id",
+            "class_id",
+            "catalog_id",
+            name="uq_aiuditor_suite_class_catalog",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    catalog_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    pack_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AiuditorAdmission(Base):
+    """Uploaded-model admission. Quarantine/sandbox stubs stay pending."""
+
+    __tablename__ = "aiuditor_admissions"
+    __table_args__ = (
+        Index("ix_aiuditor_admissions_tenant", "tenant_id"),
+        Index("ix_aiuditor_admissions_tenant_status", "tenant_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    file_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    format: Mapped[str] = mapped_column(String(32), nullable=False)
+    quant: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    license: Mapped[str] = mapped_column(String(64), nullable=False)
+    intended_class: Mapped[str] = mapped_column(String(64), nullable=False)
+    credential_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    verdict: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
