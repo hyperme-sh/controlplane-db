@@ -1629,5 +1629,44 @@ class AiuditorAdmission(Base):
     verdict: Mapped[str | None] = mapped_column(String(16), nullable=True)
     reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
     resolved_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AiuditorCandidate(Base):
+    """Daily crawl metadata pin. Weights never stored here."""
+
+    __tablename__ = "aiuditor_candidates"
+    __table_args__ = (
+        Index("ix_aiuditor_candidates_tenant", "tenant_id"),
+        Index("ix_aiuditor_candidates_tenant_class", "tenant_id", "class_id"),
+        Index("ix_aiuditor_candidates_tenant_status", "tenant_id", "status"),
+        UniqueConstraint(
+            "tenant_id",
+            "repo",
+            "revision",
+            "file_name",
+            "class_id",
+            name="uq_aiuditor_candidate_source_class",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    repo: Mapped[str] = mapped_column(String(256), nullable=False)
+    revision: Mapped[str] = mapped_column(String(128), nullable=False)
+    file_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    license: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    quant: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    file_hash: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    publisher: Mapped[str] = mapped_column(String(64), nullable=False)
+    catalog_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    soak_job_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
