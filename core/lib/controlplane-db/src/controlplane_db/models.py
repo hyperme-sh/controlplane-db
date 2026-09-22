@@ -10,6 +10,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -1104,6 +1105,35 @@ class HypermeshTunnel(Base):
     ack_applied: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HypermeshScorecard(Base):
+    """Host scorecard report. decode_tok_s stays null until a timed sample."""
+
+    __tablename__ = "hypermesh_scorecards"
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id", "device_id", "catalog_id", name="uq_hm_scorecard_device_catalog"
+        ),
+        Index("ix_hm_scorecards_tenant", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    catalog_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    serial: Mapped[str] = mapped_column(String(128), nullable=False)
+    image_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    runtime: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_pack: Mapped[str] = mapped_column(String(64), nullable=False)
+    sample_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    decode_tok_s: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sustained: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    thermal_c: Mapped[float | None] = mapped_column(Float, nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class HypermeshPayout(Base):
