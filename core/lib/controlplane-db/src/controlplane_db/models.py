@@ -1637,6 +1637,9 @@ class AiuditorAdmission(Base):
     reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
     resolved_by: Mapped[str | None] = mapped_column(String(256), nullable=True)
     size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sandbox_soak_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    sandbox_egress_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    sandbox_egress_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
