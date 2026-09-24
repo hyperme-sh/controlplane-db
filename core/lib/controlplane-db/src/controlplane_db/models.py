@@ -1033,6 +1033,7 @@ class HypermeshDevice(Base):
     lab: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
+    wg_public_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
 
 class HypermeshCatalogEntry(Base):
