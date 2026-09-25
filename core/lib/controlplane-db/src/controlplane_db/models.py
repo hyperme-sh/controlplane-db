@@ -9,6 +9,7 @@ from decimal import Decimal
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
@@ -1428,7 +1429,33 @@ class HypermeshDeviceHealth(Base):
     """Latest agent health for one device. Heartbeat is the only writer."""
 
     __tablename__ = "hypermesh_device_health"
-    __table_args__ = (Index("ix_hm_device_health_tenant", "tenant_id"),)
+    __table_args__ = (
+        CheckConstraint(
+            "last_sync_http_status IS NULL OR (last_sync_http_status >= 0 AND last_sync_http_status <= 599)",
+            name="ck_hm_health_http_status",
+        ),
+        CheckConstraint(
+            "handshake_age_s IS NULL OR handshake_age_s >= 0",
+            name="ck_hm_health_handshake",
+        ),
+        CheckConstraint(
+            "wg_pid IS NULL OR wg_pid >= 0",
+            name="ck_hm_health_wg_pid",
+        ),
+        CheckConstraint(
+            "wg_port IS NULL OR (wg_port >= 1 AND wg_port <= 65535)",
+            name="ck_hm_health_wg_port",
+        ),
+        CheckConstraint(
+            "lease_container_count IS NULL OR lease_container_count >= 0",
+            name="ck_hm_health_containers",
+        ),
+        CheckConstraint(
+            "build_commit IS NULL OR build_commit ~ '^[0-9a-f]{1,64}$'",
+            name="ck_hm_health_build_commit",
+        ),
+        Index("ix_hm_device_health_tenant", "tenant_id"),
+    )
 
     device_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -1458,8 +1485,23 @@ class HypermeshFleetAlert(Base):
 
     __tablename__ = "hypermesh_fleet_alerts"
     __table_args__ = (
+        CheckConstraint(
+            "kind IN ('heartbeat_stale', 'handshake_stale', 'tunnel_sync_failing', 'build_drift')",
+            name="ck_hm_fleet_alert_kind",
+        ),
+        CheckConstraint(
+            "state IN ('open', 'resolved')",
+            name="ck_hm_fleet_alert_state",
+        ),
         Index("ix_hm_fleet_alerts_tenant", "tenant_id"),
         Index("ix_hm_fleet_alerts_device", "device_id"),
+        Index(
+            "uq_hm_fleet_alert_open",
+            "device_id",
+            "kind",
+            unique=True,
+            postgresql_where=text("state = 'open'"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
@@ -1483,6 +1525,15 @@ class HypermeshFleetHealthConfig(Base):
     """Fleet windows and the deploy-set expected build. Not environment config."""
 
     __tablename__ = "hypermesh_fleet_health_config"
+    __table_args__ = (
+        CheckConstraint("heartbeat_stale_s >= 1", name="ck_hm_fleet_cfg_heartbeat"),
+        CheckConstraint("handshake_stale_s >= 1", name="ck_hm_fleet_cfg_handshake"),
+        CheckConstraint("sync_fail_s >= 1", name="ck_hm_fleet_cfg_sync"),
+        CheckConstraint(
+            "expected_build_commit IS NULL OR expected_build_commit ~ '^[0-9a-f]{1,64}$'",
+            name="ck_hm_fleet_cfg_commit",
+        ),
+    )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
