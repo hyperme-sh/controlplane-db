@@ -1030,6 +1030,9 @@ class HypermeshDevice(Base):
     sell_state: Mapped[str] = mapped_column(String(16), nullable=False, default="n/a")
     site_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     role: Mapped[str] = mapped_column(String(16), nullable=False, default="host")
+    host_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="model", server_default=text("'model'")
+    )
     schedule_hold: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=text("false")
     )
