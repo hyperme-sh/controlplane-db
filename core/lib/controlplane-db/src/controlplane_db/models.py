@@ -1107,6 +1107,7 @@ class HypermeshLease(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     purpose: Mapped[str] = mapped_column(String(32), nullable=False, default="renter")
     contract_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     ruleset_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
