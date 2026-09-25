@@ -41,13 +41,15 @@ def upgrade() -> None:
             "SELECT set_config('app.current_tenant_id', :tid, true)"
         ).bindparams(tid=_MARKETPLACE_TENANT)
     )
+    # Bind as text and cast. SQLAlchemy types a Python str as VARCHAR, and
+    # uuid = varchar does not match.
     op.execute(
         sa.text(
             """
             UPDATE hypermesh_devices
             SET lab = true
-            WHERE id = :device_id
-              AND tenant_id = :tenant_id
+            WHERE id = CAST(:device_id AS uuid)
+              AND tenant_id = CAST(:tenant_id AS uuid)
             """
         ).bindparams(device_id=_LIVE_DEVICE, tenant_id=_MARKETPLACE_TENANT)
     )
@@ -58,8 +60,8 @@ def upgrade() -> None:
             SET lab = false,
                 enrolled = false,
                 sell_state = 'paused'
-            WHERE id = :device_id
-              AND tenant_id = :tenant_id
+            WHERE id = CAST(:device_id AS uuid)
+              AND tenant_id = CAST(:tenant_id AS uuid)
             """
         ).bindparams(device_id=_PLACEHOLDER_DEVICE, tenant_id=_MARKETPLACE_TENANT)
     )
