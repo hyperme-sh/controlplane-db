@@ -1424,6 +1424,77 @@ class HypermeshSiteToken(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class HypermeshDeviceHealth(Base):
+    """Latest agent health for one device. Heartbeat is the only writer."""
+
+    __tablename__ = "hypermesh_device_health"
+    __table_args__ = (Index("ix_hm_device_health_tenant", "tenant_id"),)
+
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("hypermesh_devices.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    tunnel_state: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_sync_error_class: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_sync_http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    handshake_age_s: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    wg_pid: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    wg_port: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    lease_container_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    build_commit: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    sync_error_since: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class HypermeshFleetAlert(Base):
+    """Open or resolved fleet alert. One open row per device and kind."""
+
+    __tablename__ = "hypermesh_fleet_alerts"
+    __table_args__ = (
+        Index("ix_hm_fleet_alerts_tenant", "tenant_id"),
+        Index("ix_hm_fleet_alerts_device", "device_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("hypermesh_devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    detail: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+
+class HypermeshFleetHealthConfig(Base):
+    """Fleet windows and the deploy-set expected build. Not environment config."""
+
+    __tablename__ = "hypermesh_fleet_health_config"
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    heartbeat_stale_s: Mapped[int] = mapped_column(Integer, nullable=False, default=180)
+    handshake_stale_s: Mapped[int] = mapped_column(Integer, nullable=False, default=300)
+    sync_fail_s: Mapped[int] = mapped_column(Integer, nullable=False, default=300)
+    expected_build_commit: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
 class HypermeshHostCertOverride(Base):
     """Host certification / AGX bench validation window. Plane hold + preempt + restore."""
 
