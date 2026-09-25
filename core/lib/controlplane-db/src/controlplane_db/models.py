@@ -1178,6 +1178,12 @@ class HypermeshScorecard(Base):
                 "AND source_path IS NOT NULL"
             ),
         ),
+        Index(
+            "uq_hm_scorecard_content",
+            "content_sha256",
+            unique=True,
+            postgresql_where=text("content_sha256 IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)

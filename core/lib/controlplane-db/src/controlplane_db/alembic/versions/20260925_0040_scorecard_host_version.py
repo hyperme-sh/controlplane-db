@@ -3,10 +3,11 @@
 Revision ID: 0040_scorecard_host_version
 Revises: 0039_lab_device_identity
 
-``image_digest`` is already on hypermesh_scorecards. This adds the host
-software version the bench recorded, plus the source repo, commit, path,
-and content hash so the same file can be imported twice without a second
-write. Agent-posted scorecards leave the source columns null.
+``image_digest`` is already on hypermesh_scorecards. This revision has not
+shipped. It adds the host software version the bench recorded, plus the
+source repo, full commit, path, and file sha256. The same repo, commit, and
+path, or the same file sha256, cannot be stored twice. Agent-posted
+scorecards leave the source columns null.
 """
 
 from __future__ import annotations
@@ -59,10 +60,20 @@ def upgrade() -> None:
             """
         )
     )
+    op.execute(
+        sa.text(
+            f"""
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_hm_scorecard_content
+            ON {_TABLE} (content_sha256)
+            WHERE content_sha256 IS NOT NULL
+            """
+        )
+    )
 
 
 def downgrade() -> None:
-    op.execute(sa.text(f"DROP INDEX IF EXISTS uq_hm_scorecard_source"))
+    op.execute(sa.text("DROP INDEX IF EXISTS uq_hm_scorecard_content"))
+    op.execute(sa.text("DROP INDEX IF EXISTS uq_hm_scorecard_source"))
     for column in (
         "content_sha256",
         "source_path",
