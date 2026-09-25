@@ -1109,6 +1109,7 @@ class HypermeshLease(Base):
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     purpose: Mapped[str] = mapped_column(String(32), nullable=False, default="renter")
     contract_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    ruleset_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class HypermeshJob(Base):
@@ -1573,6 +1574,352 @@ class HypermeshHostCertOverride(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     fail_closed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshPricingPool(Base):
+    """One priced supply pool. pool_id is ``<class_id>@<region>``."""
+
+    __tablename__ = "hypermesh_pricing_pools"
+    __table_args__ = (
+        CheckConstraint("kind IN ('P1', 'P2')", name="ck_hm_pricing_pool_kind"),
+        CheckConstraint(
+            "pool_id = class_id || '@' || region",
+            name="ck_hm_pricing_pool_id_shape",
+        ),
+        Index("ix_hm_pricing_pools_tenant", "tenant_id"),
+    )
+
+    pool_id: Mapped[str] = mapped_column(String(129), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    class_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    region: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="default", server_default=text("'default'")
+    )
+    kind: Mapped[str] = mapped_column(String(2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshPricingRound(Base):
+    """One realtime or day-ahead clearing. Lottery seed stays null until reveal."""
+
+    __tablename__ = "hypermesh_pricing_rounds"
+    __table_args__ = (
+        CheckConstraint(
+            "round_type IN ('realtime', 'day_ahead')",
+            name="ck_hm_pricing_round_type",
+        ),
+        CheckConstraint(
+            "char_length(ruleset_version) > 0",
+            name="ck_hm_pricing_round_ruleset",
+        ),
+        CheckConstraint(
+            "char_length(engine_version) > 0",
+            name="ck_hm_pricing_round_engine",
+        ),
+        CheckConstraint(
+            "request_hash ~ '^[0-9a-f]{64}$'",
+            name="ck_hm_pricing_round_request_hash",
+        ),
+        CheckConstraint(
+            "lottery_seed_commit ~ '^[0-9a-f]{64}$'",
+            name="ck_hm_pricing_round_seed_commit",
+        ),
+        CheckConstraint(
+            "lottery_seed IS NULL OR lottery_seed ~ '^[0-9a-f]{1,128}$'",
+            name="ck_hm_pricing_round_seed",
+        ),
+        UniqueConstraint("tenant_id", "idempotency_key", name="uq_hm_pricing_round_idempotency"),
+        Index("ix_hm_pricing_rounds_tenant", "tenant_id"),
+        Index("ix_hm_pricing_rounds_start", "tenant_id", "round_start"),
+    )
+
+    round_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    round_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    round_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    ruleset_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    engine_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    degraded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    lottery_seed_commit: Mapped[str] = mapped_column(String(64), nullable=False)
+    lottery_seed: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshPoolPrice(Base):
+    """Clearing result for one pool in one round, plus the state the next round sends."""
+
+    __tablename__ = "hypermesh_pool_prices"
+    __table_args__ = (
+        CheckConstraint(
+            "base_cents >= 0 AND next_base_cents >= 0 AND reserve_cents >= 0 "
+            "AND cap_cents >= 0 AND next_ema_cents >= 0 "
+            "AND (floor_cents IS NULL OR floor_cents >= 0)",
+            name="ck_hm_pool_price_cents",
+        ),
+        CheckConstraint(
+            "char_length(ruleset_version) > 0",
+            name="ck_hm_pool_price_ruleset",
+        ),
+        Index("ix_hm_pool_prices_tenant", "tenant_id"),
+    )
+
+    round_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("hypermesh_pricing_rounds.round_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    pool_id: Mapped[str] = mapped_column(
+        String(129),
+        ForeignKey("hypermesh_pricing_pools.pool_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    base_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    next_base_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    floor_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reserve_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    cap_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    utilization: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    demand_hours: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    supply_hours: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    supply_clamped: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    reserve_source: Mapped[str] = mapped_column(String(64), nullable=False)
+    rationed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    boost_active: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    boost_multiple: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    at_cap: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    at_floor: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    scarce: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    org_cap_applied: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    degraded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    ruleset_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    boost: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    next_ema_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    trailing_state: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    supply_tiers: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+
+
+class HypermeshPricingOrder(Base):
+    """Renter order. rungs is the max-price ladder the engine clears against."""
+
+    __tablename__ = "hypermesh_orders"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('open', 'filled', 'partial', 'unfilled', 'cancelled')",
+            name="ck_hm_pricing_order_status",
+        ),
+        CheckConstraint("tip_cents >= 0 AND hours > 0", name="ck_hm_pricing_order_money"),
+        Index("ix_hm_pricing_orders_tenant", "tenant_id"),
+        Index("ix_hm_pricing_orders_org", "tenant_id", "org_id"),
+    )
+
+    order_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    org_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    pool_id: Mapped[str] = mapped_column(
+        String(129),
+        ForeignKey("hypermesh_pricing_pools.pool_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    rungs: Mapped[list] = mapped_column(JSONB, nullable=False)
+    tip_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    hours: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    pain: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    prepay_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshPricingFill(Base):
+    """One awarded slice. pay_cents is per box-hour; total_cents is the slice."""
+
+    __tablename__ = "hypermesh_fills"
+    __table_args__ = (
+        CheckConstraint(
+            "pay_cents >= 0 AND total_cents >= 0 AND tip_cents >= 0 AND hours > 0",
+            name="ck_hm_pricing_fill_money",
+        ),
+        CheckConstraint(
+            "char_length(ruleset_version) > 0 AND char_length(engine_version) > 0",
+            name="ck_hm_pricing_fill_versions",
+        ),
+        UniqueConstraint(
+            "round_id",
+            "order_id",
+            "pool_id",
+            "rung_index",
+            name="uq_hm_pricing_fill_natural",
+        ),
+        Index("ix_hm_pricing_fills_tenant", "tenant_id"),
+        Index("ix_hm_pricing_fills_round", "round_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    round_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("hypermesh_pricing_rounds.round_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    order_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("hypermesh_orders.order_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    pool_id: Mapped[str] = mapped_column(
+        String(129),
+        ForeignKey("hypermesh_pricing_pools.pool_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    org_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    rung_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    hours: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    device_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("hypermesh_devices.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("hypermesh_leases.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    pay_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    tip_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    lock_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ruleset_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    engine_version: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class HypermeshPricingCostInput(Base):
+    """Floor inputs for one host device or one class, not both.
+
+    processor_pct, processor_fixed_cents, and expected_hours_per_txn are the
+    v0.1.1 token-price fee parameters. They stay null when this row is only a
+    power/capex floor.
+    """
+
+    __tablename__ = "hypermesh_cost_inputs"
+    __table_args__ = (
+        CheckConstraint(
+            "(device_id IS NOT NULL AND class_id IS NULL) "
+            "OR (device_id IS NULL AND class_id IS NOT NULL)",
+            name="ck_hm_pricing_cost_scope",
+        ),
+        CheckConstraint(
+            "capex_cents >= 0 AND tariff_cents_per_kwh >= 0 AND loaded_kw >= 0",
+            name="ck_hm_pricing_cost_nonneg",
+        ),
+        CheckConstraint(
+            "processor_fixed_cents IS NULL OR processor_fixed_cents >= 0",
+            name="ck_hm_pricing_cost_processor",
+        ),
+        Index("ix_hm_pricing_cost_tenant", "tenant_id"),
+        Index("ix_hm_pricing_cost_device", "device_id"),
+        Index("ix_hm_pricing_cost_class", "tenant_id", "class_id", "effective_from"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    device_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("hypermesh_devices.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    class_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    capex_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    loaded_kw: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    tariff_cents_per_kwh: Mapped[int] = mapped_column(Integer, nullable=False)
+    overhead: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    residual: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    host_margin: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    processor_pct: Mapped[Decimal | None] = mapped_column(Numeric, nullable=True)
+    processor_fixed_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    expected_hours_per_txn: Mapped[Decimal | None] = mapped_column(Numeric, nullable=True)
+    source: Mapped[str] = mapped_column(String(64), nullable=False)
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class HypermeshPricingAlert(Base):
+    """Open or resolved pricing alert. Pool-level rows leave device_id null.
+
+    Fleet alerts stay on hypermesh_fleet_alerts. That table's device_id is
+    NOT NULL, its open unique index is (device_id, kind), and its kind check
+    is the four fleet-health conditions. A degraded-round alert is per pool
+    and often has no device. Null device_id would not conflict in that
+    unique index, so pricing alerts are a separate table.
+    """
+
+    __tablename__ = "hypermesh_pricing_alerts"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('degraded_rounds', 'engine_unreachable')",
+            name="ck_hm_pricing_alert_kind",
+        ),
+        CheckConstraint(
+            "state IN ('open', 'resolved')",
+            name="ck_hm_pricing_alert_state",
+        ),
+        CheckConstraint(
+            "pool_id IS NOT NULL OR device_id IS NOT NULL",
+            name="ck_hm_pricing_alert_scope",
+        ),
+        Index("ix_hm_pricing_alerts_tenant", "tenant_id"),
+        Index(
+            "uq_hm_pricing_alert_open_pool",
+            "tenant_id",
+            "pool_id",
+            "kind",
+            unique=True,
+            postgresql_where=text(
+                "state = 'open' AND pool_id IS NOT NULL AND device_id IS NULL"
+            ),
+        ),
+        Index(
+            "uq_hm_pricing_alert_open_device",
+            "tenant_id",
+            "device_id",
+            "kind",
+            unique=True,
+            postgresql_where=text("state = 'open' AND device_id IS NOT NULL"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    pool_id: Mapped[str | None] = mapped_column(
+        String(129),
+        ForeignKey("hypermesh_pricing_pools.pool_id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    device_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("hypermesh_devices.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    detail: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
 
 class AiuditorConnection(Base):
