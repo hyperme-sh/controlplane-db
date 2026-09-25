@@ -1,7 +1,7 @@
 """Case-insensitive unique role name per tenant scope.
 
-Revision ID: 0041_roles_unique_per_tenant
-Revises: 0040_scorecard_host_version
+Revision ID: 0042_roles_unique_per_tenant
+Revises: 0041_fleet_health
 
 Platform roles (tenant_id NULL) and tenant roles may share a name. That is
 intentional. Uniqueness is case-insensitive inside one scope: NULL tenant is
@@ -19,8 +19,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0041_roles_unique_per_tenant"
-down_revision = "0040_scorecard_host_version"
+revision = "0042_roles_unique_per_tenant"
+down_revision = "0041_fleet_health"
 branch_labels = None
 depends_on = None
 
