@@ -1167,6 +1167,17 @@ class HypermeshScorecard(Base):
             "tenant_id", "device_id", "catalog_id", name="uq_hm_scorecard_device_catalog"
         ),
         Index("ix_hm_scorecards_tenant", "tenant_id"),
+        Index(
+            "uq_hm_scorecard_source",
+            "source_repo",
+            "source_commit",
+            "source_path",
+            unique=True,
+            postgresql_where=text(
+                "source_repo IS NOT NULL AND source_commit IS NOT NULL "
+                "AND source_path IS NOT NULL"
+            ),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
@@ -1181,6 +1192,11 @@ class HypermeshScorecard(Base):
     runtime: Mapped[str] = mapped_column(String(64), nullable=False)
     prompt_pack: Mapped[str] = mapped_column(String(64), nullable=False)
     image_digest: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    host_version: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    source_repo: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    source_commit: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    content_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     sample_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     decode_tok_s: Mapped[float | None] = mapped_column(Float, nullable=True)
     sustained: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
