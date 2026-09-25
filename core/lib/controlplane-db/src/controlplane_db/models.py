@@ -931,6 +931,8 @@ class ApiKey(Base):
     created_by_sub: Mapped[str | None] = mapped_column(String(512), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     purpose: Mapped[str] = mapped_column(String(32), nullable=False, default="renter")
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    key_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class MarketplacePurchase(Base):
