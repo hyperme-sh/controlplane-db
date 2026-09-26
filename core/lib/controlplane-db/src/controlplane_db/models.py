@@ -849,7 +849,10 @@ class AiBudgetEventAudit(Base):
     """Append-only mirror of budget.allocated.v1 for observability."""
 
     __tablename__ = "ai_budget_event_audit"
-    __table_args__ = (Index("ix_ai_budget_audit_tenant", "tenant_id"),)
+    __table_args__ = (
+        Index("ix_ai_budget_audit_tenant", "tenant_id"),
+        Index("uq_ai_budget_event_audit_source_event", "source_event_id", unique=True),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -871,6 +874,7 @@ class AiBudgetEventAudit(Base):
     delta_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
     allocated_after: Mapped[int] = mapped_column(BigInteger, nullable=False)
     ceiling_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    source_event_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
 
 class AiAgentEntitlement(Base):
