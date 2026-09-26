@@ -4,10 +4,11 @@ Revision ID: 0048_lab_pull_disk
 Revises: 0047_event_handler_idempotency
 
 lab_pull is skipped when health.disk_free_bytes is absent, or when
-that free space is below the catalog size plus a safety margin. The
-heartbeat field is stored on the device health row with the other
-health fields. Unknown free space fails closed. Model size lives on
-the catalog row, not in infra config.
+free space plus health.model_cache_evictable_bytes, when that field is
+present, is below the catalog size plus a safety margin. Both heartbeat
+fields are stored on the device health row with the other health
+fields. Unknown free space fails closed. Model size lives on the
+catalog row, not in infra config.
 """
 
 from __future__ import annotations
@@ -47,6 +48,32 @@ def upgrade() -> None:
     )
     op.execute(
         sa.text(
+            "ALTER TABLE hypermesh_device_health "
+            "ADD COLUMN IF NOT EXISTS model_cache_evictable_bytes BIGINT"
+        )
+    )
+    op.execute(
+        sa.text(
+            """
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'ck_hm_health_cache_evictable'
+                ) THEN
+                    ALTER TABLE hypermesh_device_health
+                    ADD CONSTRAINT ck_hm_health_cache_evictable
+                    CHECK (
+                        model_cache_evictable_bytes IS NULL
+                        OR model_cache_evictable_bytes >= 0
+                    );
+                END IF;
+            END $$;
+            """
+        )
+    )
+    op.execute(
+        sa.text(
             "ALTER TABLE hypermesh_catalog "
             "ADD COLUMN IF NOT EXISTS size_bytes BIGINT"
         )
@@ -64,6 +91,18 @@ def downgrade() -> None:
         sa.text("ALTER TABLE hypermesh_jobs DROP COLUMN IF EXISTS dispatch_skip_reason")
     )
     op.execute(sa.text("ALTER TABLE hypermesh_catalog DROP COLUMN IF EXISTS size_bytes"))
+    op.execute(
+        sa.text(
+            "ALTER TABLE hypermesh_device_health "
+            "DROP CONSTRAINT IF EXISTS ck_hm_health_cache_evictable"
+        )
+    )
+    op.execute(
+        sa.text(
+            "ALTER TABLE hypermesh_device_health "
+            "DROP COLUMN IF EXISTS model_cache_evictable_bytes"
+        )
+    )
     op.execute(
         sa.text(
             "ALTER TABLE hypermesh_device_health "

@@ -1471,6 +1471,10 @@ class HypermeshDeviceHealth(Base):
             "disk_free_bytes IS NULL OR disk_free_bytes >= 0",
             name="ck_hm_health_disk_free",
         ),
+        CheckConstraint(
+            "model_cache_evictable_bytes IS NULL OR model_cache_evictable_bytes >= 0",
+            name="ck_hm_health_cache_evictable",
+        ),
         Index("ix_hm_device_health_tenant", "tenant_id"),
     )
 
@@ -1492,6 +1496,7 @@ class HypermeshDeviceHealth(Base):
     lease_container_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     build_commit: Mapped[str | None] = mapped_column(String(64), nullable=True)
     disk_free_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    model_cache_evictable_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sync_error_since: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
