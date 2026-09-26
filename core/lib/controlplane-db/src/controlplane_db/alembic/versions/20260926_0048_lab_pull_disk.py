@@ -3,10 +3,11 @@
 Revision ID: 0048_lab_pull_disk
 Revises: 0047_event_handler_idempotency
 
-lab_pull is skipped when the heartbeat has not reported free bytes, or
-when free bytes are below the catalog size plus a safety margin. Both
-measures are nullable. Unknown free space fails closed. Model size lives
-on the catalog row, not in infra config.
+lab_pull is skipped when health.disk_free_bytes is absent, or when
+that free space is below the catalog size plus a safety margin. The
+heartbeat field is stored on the device health row with the other
+health fields. Unknown free space fails closed. Model size lives on
+the catalog row, not in infra config.
 """
 
 from __future__ import annotations
@@ -23,8 +24,25 @@ depends_on = None
 def upgrade() -> None:
     op.execute(
         sa.text(
-            "ALTER TABLE hypermesh_devices "
+            "ALTER TABLE hypermesh_device_health "
             "ADD COLUMN IF NOT EXISTS disk_free_bytes BIGINT"
+        )
+    )
+    op.execute(
+        sa.text(
+            """
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'ck_hm_health_disk_free'
+                ) THEN
+                    ALTER TABLE hypermesh_device_health
+                    ADD CONSTRAINT ck_hm_health_disk_free
+                    CHECK (disk_free_bytes IS NULL OR disk_free_bytes >= 0);
+                END IF;
+            END $$;
+            """
         )
     )
     op.execute(
@@ -47,5 +65,14 @@ def downgrade() -> None:
     )
     op.execute(sa.text("ALTER TABLE hypermesh_catalog DROP COLUMN IF EXISTS size_bytes"))
     op.execute(
-        sa.text("ALTER TABLE hypermesh_devices DROP COLUMN IF EXISTS disk_free_bytes")
+        sa.text(
+            "ALTER TABLE hypermesh_device_health "
+            "DROP CONSTRAINT IF EXISTS ck_hm_health_disk_free"
+        )
+    )
+    op.execute(
+        sa.text(
+            "ALTER TABLE hypermesh_device_health "
+            "DROP COLUMN IF EXISTS disk_free_bytes"
+        )
     )

@@ -1031,7 +1031,6 @@ class HypermeshDevice(Base):
     last_loaded_model_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     last_uptime_s: Mapped[int | None] = mapped_column(Integer, nullable=True)
     last_thermal_c: Mapped[float | None] = mapped_column(Numeric, nullable=True)
-    disk_free_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     usdc_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sell_state: Mapped[str] = mapped_column(String(16), nullable=False, default="n/a")
@@ -1468,6 +1467,10 @@ class HypermeshDeviceHealth(Base):
             "build_commit IS NULL OR build_commit ~ '^[0-9a-f]{1,64}$'",
             name="ck_hm_health_build_commit",
         ),
+        CheckConstraint(
+            "disk_free_bytes IS NULL OR disk_free_bytes >= 0",
+            name="ck_hm_health_disk_free",
+        ),
         Index("ix_hm_device_health_tenant", "tenant_id"),
     )
 
@@ -1488,6 +1491,7 @@ class HypermeshDeviceHealth(Base):
     wg_port: Mapped[int | None] = mapped_column(Integer, nullable=True)
     lease_container_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     build_commit: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    disk_free_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sync_error_since: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
