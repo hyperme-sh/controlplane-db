@@ -1031,6 +1031,7 @@ class HypermeshDevice(Base):
     last_loaded_model_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     last_uptime_s: Mapped[int | None] = mapped_column(Integer, nullable=True)
     last_thermal_c: Mapped[float | None] = mapped_column(Numeric, nullable=True)
+    disk_free_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     usdc_pubkey: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sell_state: Mapped[str] = mapped_column(String(16), nullable=False, default="n/a")
@@ -1086,6 +1087,7 @@ class HypermeshCatalogEntry(Base):
     admission_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
+    size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
 
 class HypermeshLease(Base):
@@ -1142,6 +1144,7 @@ class HypermeshJob(Base):
     ticket: Mapped[str | None] = mapped_column(Text, nullable=True)
     until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     sell_state: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    dispatch_skip_reason: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
 
 class HypermeshTunnel(Base):
