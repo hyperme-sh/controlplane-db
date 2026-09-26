@@ -788,7 +788,7 @@ class MarketplaceListing(Base):
 
 
 class MarketplaceSellerProfile(Base):
-    """Kafka user.created → seller verification (tenant-scoped)."""
+    """user.created → seller verification (tenant-scoped)."""
 
     __tablename__ = "marketplace_seller_profiles"
     __table_args__ = (
@@ -849,7 +849,11 @@ class AiBudgetEventAudit(Base):
     """Append-only mirror of budget.allocated.v1 for observability."""
 
     __tablename__ = "ai_budget_event_audit"
-    __table_args__ = (Index("ix_ai_budget_audit_tenant", "tenant_id"),)
+    __table_args__ = (
+        Index("ix_ai_budget_audit_tenant", "tenant_id"),
+        Index("uq_ai_budget_event_audit_source_event", "source_event_id", unique=True),
+        Index("uq_ai_budget_event_audit_source_key", "source_event_key", unique=True),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -871,10 +875,12 @@ class AiBudgetEventAudit(Base):
     delta_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
     allocated_after: Mapped[int] = mapped_column(BigInteger, nullable=False)
     ceiling_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    source_event_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    source_event_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
 
 class AiAgentEntitlement(Base):
-    """Buyer entitlement after purchasing an agent listing (Kafka purchase.completed)."""
+    """Buyer entitlement after purchasing an agent listing (purchase.completed)."""
 
     __tablename__ = "ai_agent_entitlements"
     __table_args__ = (
@@ -1139,7 +1145,7 @@ class HypermeshJob(Base):
 
 
 class HypermeshTunnel(Base):
-    """One WireGuard peer per host. The lease is a ticket. Private keys never go to Kafka."""
+    """One WireGuard peer per host. The lease is a ticket. Private keys never go on the event bus."""
 
     __tablename__ = "hypermesh_tunnels"
     __table_args__ = (Index("ix_hm_tunnels_tenant", "tenant_id"),)
