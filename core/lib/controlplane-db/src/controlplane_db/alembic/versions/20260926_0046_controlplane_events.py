@@ -1,7 +1,7 @@
 """Postgres-backed control plane event bus.
 
-Revision ID: 0045_controlplane_events
-Revises: 0044_pricing_schema
+Revision ID: 0046_controlplane_events
+Revises: 0045_lease_failed_at
 
 ``controlplane_events`` is the log. Each consumer group copies new ids into
 ``controlplane_event_deliveries`` and claims them with ``FOR UPDATE SKIP LOCKED``.
@@ -34,8 +34,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
-revision = "0045_controlplane_events"
-down_revision = "0044_pricing_schema"
+revision = "0046_controlplane_events"
+down_revision = "0045_lease_failed_at"
 branch_labels = None
 depends_on = None
 
