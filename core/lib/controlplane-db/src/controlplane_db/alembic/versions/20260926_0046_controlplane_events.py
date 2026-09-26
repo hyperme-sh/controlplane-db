@@ -20,11 +20,16 @@ Pollers connect with the service ``DATABASE_URL``. Compose uses the
 ``controlplane`` role (``POSTGRES_USER``). A ``NOBYPASSRLS`` deployment uses
 ``controlplane_app``. This migration grants those roles, when they exist,
 and revokes the event tables, sequence, and functions from ``PUBLIC``.
-The insert trigger functions are ``SECURITY DEFINER`` (owner is the migration
-role) so a publisher only needs ``INSERT`` on ``controlplane_events`` plus
-``EXECUTE`` on the trigger functions. Pollers need ``SELECT``/``UPDATE`` on
-``controlplane_event_deliveries`` and ``EXECUTE`` on ``claim`` / ``register``
-/ ``replay``.
+The insert triggers and ``register_controlplane_event_consumer`` are
+``SECURITY DEFINER`` (owner is the migration role, ``search_path`` is
+``public``). A publisher only needs ``INSERT`` on ``controlplane_events``
+plus ``EXECUTE`` on the trigger functions. Registration takes ``SHARE``,
+which requires ``UPDATE``, ``DELETE``, or ``TRUNCATE`` that
+``controlplane_app`` does not have, so that function runs as its owner.
+``EXECUTE`` stays granted only to the app roles. Pollers need
+``SELECT``/``UPDATE`` on ``controlplane_event_deliveries`` and ``EXECUTE``
+on ``claim`` / ``register`` / ``replay``. A new group waits at most two
+seconds for that lock; the consumer retries on the next poll.
 
 RLS: these tables are platform-scoped. Consumers must see every tenant, and a
 publisher often runs with ``app.current_tenant_id`` already set for the business
@@ -242,6 +247,8 @@ def upgrade() -> None:
                 p_max_attempts integer
             ) RETURNS void
             LANGUAGE plpgsql
+            SECURITY DEFINER
+            SET search_path = public
             AS $fn$
             DECLARE
                 v_type text;
@@ -261,8 +268,13 @@ def upgrade() -> None:
                 -- An open insert holds ROW EXCLUSIVE. SHARE waits until that
                 -- insert commits, then holds new inserts until this subscription
                 -- and its backfill commit. Otherwise the trigger misses the
-                -- subscription and the backfill misses the insert.
+                -- subscription and the backfill misses the insert. SHARE needs
+                -- UPDATE, DELETE, or TRUNCATE, which the app role lacks, so
+                -- this function is SECURITY DEFINER. Two seconds is enough for
+                -- a commit in flight; a longer publisher transaction fails this
+                -- call and the consumer retries on the next poll.
                 IF v_new THEN
+                    SET LOCAL lock_timeout = '2s';
                     LOCK TABLE controlplane_events IN SHARE MODE;
                 END IF;
 
