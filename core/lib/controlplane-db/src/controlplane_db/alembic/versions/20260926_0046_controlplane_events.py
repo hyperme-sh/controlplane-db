@@ -20,10 +20,14 @@ Pollers connect with the service ``DATABASE_URL``. Compose uses the
 ``controlplane`` role (``POSTGRES_USER``). A ``NOBYPASSRLS`` deployment uses
 ``controlplane_app``. This migration grants those roles, when they exist,
 and revokes the event tables, sequence, and functions from ``PUBLIC``.
-The insert triggers and ``register_controlplane_event_consumer`` are
-``SECURITY DEFINER`` (owner is the migration role, ``search_path`` is
-``public``). A publisher only needs ``INSERT`` on ``controlplane_events``
-plus ``EXECUTE`` on the trigger functions. Registration takes ``SHARE``,
+``notify_controlplane_event``, ``deliver_controlplane_event``, and
+``register_controlplane_event_consumer`` are ``SECURITY DEFINER`` (owner
+is the migration role). Their ``search_path`` is ``pg_catalog, public,
+pg_temp``. ``pg_temp`` is listed last so a caller's temporary tables
+cannot hide the real ones. An omitted temp schema is searched first, and
+a trigger on that shadow table would run as the function owner. A
+publisher only needs ``INSERT`` on ``controlplane_events`` plus
+``EXECUTE`` on the trigger functions. Registration takes ``SHARE``,
 which requires ``UPDATE``, ``DELETE``, or ``TRUNCATE`` that
 ``controlplane_app`` does not have, so that function runs as its owner.
 ``EXECUTE`` stays granted only to the app roles. Pollers need
@@ -184,7 +188,7 @@ def upgrade() -> None:
             RETURNS trigger
             LANGUAGE plpgsql
             SECURITY DEFINER
-            SET search_path = public
+            SET search_path = pg_catalog, public, pg_temp
             AS $fn$
             BEGIN
                 PERFORM pg_notify('controlplane_events', NEW.id::text);
@@ -211,7 +215,7 @@ def upgrade() -> None:
             RETURNS trigger
             LANGUAGE plpgsql
             SECURITY DEFINER
-            SET search_path = public
+            SET search_path = pg_catalog, public, pg_temp
             AS $fn$
             BEGIN
                 INSERT INTO controlplane_event_deliveries (
@@ -248,7 +252,7 @@ def upgrade() -> None:
             ) RETURNS void
             LANGUAGE plpgsql
             SECURITY DEFINER
-            SET search_path = public
+            SET search_path = pg_catalog, public, pg_temp
             AS $fn$
             DECLARE
                 v_type text;
