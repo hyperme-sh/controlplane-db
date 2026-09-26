@@ -788,7 +788,7 @@ class MarketplaceListing(Base):
 
 
 class MarketplaceSellerProfile(Base):
-    """Kafka user.created → seller verification (tenant-scoped)."""
+    """user.created → seller verification (tenant-scoped)."""
 
     __tablename__ = "marketplace_seller_profiles"
     __table_args__ = (
@@ -874,7 +874,7 @@ class AiBudgetEventAudit(Base):
 
 
 class AiAgentEntitlement(Base):
-    """Buyer entitlement after purchasing an agent listing (Kafka purchase.completed)."""
+    """Buyer entitlement after purchasing an agent listing (purchase.completed)."""
 
     __tablename__ = "ai_agent_entitlements"
     __table_args__ = (
@@ -1138,7 +1138,7 @@ class HypermeshJob(Base):
 
 
 class HypermeshTunnel(Base):
-    """One WireGuard peer per host. The lease is a ticket. Private keys never go to Kafka."""
+    """One WireGuard peer per host. The lease is a ticket. Private keys never go on the event bus."""
 
     __tablename__ = "hypermesh_tunnels"
     __table_args__ = (Index("ix_hm_tunnels_tenant", "tenant_id"),)
