@@ -36,9 +36,10 @@ Do not replace it with the tenant-isolation policy or the outbox insert will
 fail whenever the envelope tenant and the session GUC disagree.
 
 Retention: ``prune_controlplane_events(interval)`` deletes an event older than
-the interval only when it has delivery rows and every one of them is
+the interval when it has no delivery rows, or when every delivery is
 ``delivered`` or ``dead``. A group that is still ``pending`` or ``claimed``
-holds the event. Default window is 30 days. payment-service runs it daily
+holds the event. A group that registers later only receives events still
+inside the window. Default window is 30 days. payment-service runs it daily
 when ``CONTROLPLANE_EVENTS_PRUNE_ENABLED`` is set.
 
 There is no per-tenant ordering guarantee. Handlers must not rely on order.
@@ -244,7 +245,27 @@ def upgrade() -> None:
             AS $fn$
             DECLARE
                 v_type text;
+                v_new boolean;
             BEGIN
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM unnest(p_event_types) AS t(event_type)
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM controlplane_event_subscriptions AS s
+                        WHERE s.consumer_group = p_group
+                          AND s.event_type = t.event_type
+                    )
+                ) INTO v_new;
+
+                -- An open insert holds ROW EXCLUSIVE. SHARE waits until that
+                -- insert commits, then holds new inserts until this subscription
+                -- and its backfill commit. Otherwise the trigger misses the
+                -- subscription and the backfill misses the insert.
+                IF v_new THEN
+                    LOCK TABLE controlplane_events IN SHARE MODE;
+                END IF;
+
                 FOREACH v_type IN ARRAY p_event_types LOOP
                     INSERT INTO controlplane_event_subscriptions (
                         consumer_group, event_type, max_attempts
@@ -377,11 +398,6 @@ def upgrade() -> None:
             BEGIN
                 DELETE FROM controlplane_events AS e
                 WHERE e.created_at < now() - retention
-                  AND EXISTS (
-                    SELECT 1
-                    FROM controlplane_event_deliveries AS d
-                    WHERE d.event_id = e.id
-                  )
                   AND NOT EXISTS (
                     SELECT 1
                     FROM controlplane_event_deliveries AS d

@@ -852,6 +852,7 @@ class AiBudgetEventAudit(Base):
     __table_args__ = (
         Index("ix_ai_budget_audit_tenant", "tenant_id"),
         Index("uq_ai_budget_event_audit_source_event", "source_event_id", unique=True),
+        Index("uq_ai_budget_event_audit_source_key", "source_event_key", unique=True),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -875,6 +876,7 @@ class AiBudgetEventAudit(Base):
     allocated_after: Mapped[int] = mapped_column(BigInteger, nullable=False)
     ceiling_lamports: Mapped[int] = mapped_column(BigInteger, nullable=False)
     source_event_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    source_event_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
 
 class AiAgentEntitlement(Base):
