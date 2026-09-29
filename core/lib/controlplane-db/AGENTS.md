@@ -6,6 +6,7 @@ Shared SQLAlchemy models and Alembic migrations. Database schema ownership lives
 ## Public interface
 The exact public Python modules are the `controlplane_db` entries in [`scripts/import_boundaries.json`](../../../scripts/import_boundaries.json).
 The contract is exact-module based, not permission to import every descendant.
+Declared modules: `controlplane_db.models`, `controlplane_db.session`.
 
 ## Source of truth
 Start with [README.md](README.md) and the package's source/tests. Repository dependency policy: [../../../AGENTS.md](../../../AGENTS.md).
