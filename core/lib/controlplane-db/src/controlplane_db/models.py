@@ -1003,7 +1003,12 @@ class HypermeshDevice(Base):
 
     __tablename__ = "hypermesh_devices"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "serial", name="uq_hm_devices_tenant_serial"),
+        Index("uq_hm_devices_tenant_serial", "tenant_id", "serial", unique=True,
+              postgresql_where=text("archived_at IS NULL")),
+        Index("uq_hm_devices_tenant_host_name", "tenant_id", "host_name", unique=True,
+              postgresql_where=text("archived_at IS NULL AND enrolled AND host_name IS NOT NULL")),
+        Index("uq_hm_devices_wg_key", "wg_public_key", unique=True,
+              postgresql_where=text("wg_public_key IS NOT NULL")),
         Index("ix_hm_devices_tenant", "tenant_id"),
         Index("ix_hm_devices_tenant_site", "tenant_id", "site_id"),
     )
@@ -1014,6 +1019,8 @@ class HypermeshDevice(Base):
     )
     class_id: Mapped[str] = mapped_column(String(64), nullable=False)
     host_org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    host_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     serial: Mapped[str] = mapped_column(String(128), nullable=False)
     path_a: Mapped[dict] = mapped_column(JSONB, nullable=False)
     path_b_state: Mapped[str] = mapped_column(String(32), nullable=False)
