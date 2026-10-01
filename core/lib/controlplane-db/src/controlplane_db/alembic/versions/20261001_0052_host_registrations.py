@@ -17,6 +17,8 @@ def upgrade() -> None:
             owner_sub VARCHAR(512) NOT NULL,
             host_org_id UUID NOT NULL,
             request JSONB NOT NULL,
+            enrollment_event JSONB,
+            event_forwarded_at TIMESTAMPTZ,
             state VARCHAR(16) NOT NULL,
             created_at TIMESTAMPTZ NOT NULL,
             expires_at TIMESTAMPTZ NOT NULL,
@@ -31,6 +33,9 @@ def upgrade() -> None:
     """)
     op.execute("CREATE INDEX IF NOT EXISTS ix_hm_registration_owner "
                "ON hypermesh_host_registrations (tenant_id, owner_sub)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_hm_registration_outbox "
+               "ON hypermesh_host_registrations (tenant_id, created_at, id) "
+               "WHERE enrollment_event IS NOT NULL AND event_forwarded_at IS NULL")
     op.execute("ALTER TABLE hypermesh_host_registrations ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE hypermesh_host_registrations FORCE ROW LEVEL SECURITY")
     condition = "tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid"

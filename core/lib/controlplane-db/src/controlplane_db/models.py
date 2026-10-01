@@ -2324,6 +2324,8 @@ class HypermeshHostRegistration(Base):
         CheckConstraint("state IN ('pending', 'approved', 'denied', 'completed')",
                         name="ck_hm_registration_state"),
         Index("ix_hm_registration_owner", "tenant_id", "owner_sub"),
+        Index("ix_hm_registration_outbox", "tenant_id", "created_at", "id",
+              postgresql_where=text("enrollment_event IS NOT NULL AND event_forwarded_at IS NULL")),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
@@ -2333,6 +2335,8 @@ class HypermeshHostRegistration(Base):
     owner_sub: Mapped[str] = mapped_column(String(512), nullable=False)
     host_org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     request: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    enrollment_event: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    event_forwarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     state: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
