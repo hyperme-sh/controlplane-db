@@ -13,6 +13,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
@@ -174,6 +175,7 @@ class Role(Base):
 class Organization(Base):
     __tablename__ = "organizations"
     __table_args__ = (
+        UniqueConstraint("id", "tenant_id", name="uq_organizations_id_tenant"),
         Index(
             "uq_organizations_tenant_legal_name",
             "tenant_id",
@@ -195,6 +197,32 @@ class Organization(Base):
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
     legal_name: Mapped[str] = mapped_column(String(512), nullable=False)
+
+
+
+class HostOrganizationBinding(Base):
+    """Default host organization owned by one verified identity in a tenant."""
+
+    __tablename__ = "host_organization_bindings"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "tenant_id"],
+            ["organizations.id", "organizations.tenant_id"],
+            name="fk_host_org_binding_organization_tenant",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("organization_id", name="uq_host_org_binding_organization"),
+    )
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    keycloak_sub: Mapped[str] = mapped_column(String(512), primary_key=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 class OrganizationIdpLink(Base):
