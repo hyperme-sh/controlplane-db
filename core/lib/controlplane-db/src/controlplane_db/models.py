@@ -2310,3 +2310,34 @@ class OperatorMailQuota(Base):
 
     year_month: Mapped[str] = mapped_column(String(7), primary_key=True)
     sent_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class HypermeshHostRegistration(Base):
+    """Immutable installation request; only hashes of locally held credentials."""
+
+    __tablename__ = "hypermesh_host_registrations"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["host_org_id", "tenant_id"], ["organizations.id", "organizations.tenant_id"],
+            name="fk_hm_registration_org_tenant", ondelete="CASCADE",
+        ),
+        CheckConstraint("state IN ('pending', 'approved', 'denied', 'completed')",
+                        name="ck_hm_registration_state"),
+        Index("ix_hm_registration_owner", "tenant_id", "owner_sub"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    owner_sub: Mapped[str] = mapped_column(String(512), nullable=False)
+    host_org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    request: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    device_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("hypermesh_devices.id"), nullable=True, unique=True
+    )
+
