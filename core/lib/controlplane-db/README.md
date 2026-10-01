@@ -15,6 +15,7 @@ All ORM models that include `tenant_id` are covered by migrations that **ENABLE 
 | `users`, `roles`, `user_password_resets`, `user_preferences`, `storage_settings`, `chat_histories_ai`, `chat_sessions_ai`, `user_passkeys`, `user_passkey_challenges`, `user_magic_links`, `stripe_settings`, `billing_records`, `subscription_plans`, `notification_banner_settings`, `sso_settings`, `branding_configuration` | `20250330_0001_initial_schema_rls` |
 | `organizations`, `groups`, `user_group_memberships` | `20250330_0003_user_groups_orgs_rls` |
 | `host_organization_bindings` | `20261001_0051_host_org_bindings` |
+| `hypermesh_host_registrations` | `20261001_0052_host_registrations` |
 | `acl_casbin_rules` | `20250330_0005_acl_casbin_rls` |
 | `sociacl_share_links`, `sociacl_recovery_sessions` | `20250330_0006_sociacl_shr` |
 | `crypto_agent_budgets` | `20250330_0007_crypto_bdg` |
