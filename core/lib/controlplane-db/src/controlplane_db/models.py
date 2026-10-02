@@ -1122,6 +1122,7 @@ class HypermeshCatalogEntry(Base):
         UUID(as_uuid=True), nullable=True
     )
     size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    onboarding_source_ref: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
 
 class HypermeshLease(Base):
@@ -2345,3 +2346,25 @@ class HypermeshHostRegistration(Base):
         UUID(as_uuid=True), ForeignKey("hypermesh_devices.id"), nullable=True, unique=True
     )
 
+
+
+class HypermeshOnboardingRun(Base):
+    """Frozen workload authority and one immutable result per owner installation."""
+    __tablename__ = "hypermesh_onboarding_runs"
+    __table_args__ = (
+        Index("ix_hm_onboarding_device", "tenant_id", "device_id"),
+        CheckConstraint("state IN ('planned', 'passed', 'failed')", name="ck_hm_onboarding_state"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("hypermesh_devices.id"), nullable=False)
+    registration_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("hypermesh_host_registrations.id"), nullable=False)
+    manifest: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    manifest_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    evidence: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
