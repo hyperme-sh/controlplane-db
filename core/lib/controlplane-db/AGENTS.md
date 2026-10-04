@@ -6,7 +6,7 @@ Platform SQLAlchemy models, the owner-chain runner, and the frozen mixed Alembic
 ## Public interface
 The exact public Python modules are the `controlplane_db` entries in [`scripts/import_boundaries.json`](../../../scripts/import_boundaries.json).
 The contract is exact-module based, not permission to import every descendant.
-Declared modules: `controlplane_db.base`, `controlplane_db.models`, `controlplane_db.session`, `controlplane_db.migrations`.
+Declared modules: `controlplane_db.base`, `controlplane_db.models`, `controlplane_db.session`, `controlplane_db.migrations`, `controlplane_db.startup`.
 
 ## Source of truth
 Start with [README.md](README.md) and the package's source/tests. Repository dependency policy: [../../../AGENTS.md](../../../AGENTS.md).
