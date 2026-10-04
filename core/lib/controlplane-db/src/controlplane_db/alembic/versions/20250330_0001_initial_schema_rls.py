@@ -10,8 +10,7 @@ from typing import Sequence, Union
 
 from alembic import op
 
-from controlplane_db.base import Base
-from controlplane_db import models  # noqa: F401
+from controlplane_db.alembic.legacy_models import Base
 
 revision: str = "0001"
 down_revision: Union[str, None] = None

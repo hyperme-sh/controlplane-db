@@ -6,8 +6,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 
-from controlplane_db.base import Base
-from controlplane_db import models  # noqa: F401
+from controlplane_db.alembic.legacy_models import Base
 
 config = context.config
 if config.config_file_name is not None:

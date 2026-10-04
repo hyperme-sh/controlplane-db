@@ -1,6 +1,6 @@
 # controlplane-db
 
-Shared SQLAlchemy models and Alembic migrations for the Panopticon control plane.
+Platform SQLAlchemy models and the existing mixed Alembic chain for the Panopticon control plane. Product models live in `hypermesh_service.models` and `aiuditor_service.models`; operator models live in `user_service.models`. The separate, frozen `alembic.legacy_models` registry preserves the mixed chain without runtime product imports. See [model ownership](../../../docs/inversion.md#wp-inv-02-model-ownership).
 
 ## Row-level security (RLS)
 
