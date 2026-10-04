@@ -54,7 +54,8 @@ AIuditor and payment-service. See the [owner-chain runbook](../../../docs/invers
 The package contains portable owner folders in `src/controlplane_db/migration_chains`
 during Phase A. Every baseline includes real database schema beyond the ORM.
 
-`alembic.ini` and existing startup entrypoints still use the frozen mixed chain;
-Ops must approve baseline stamping and the startup switch after testing a copy.
+`alembic.ini` retains the frozen mixed chain. Startup defaults to that chain;
+the test VM overlay selects `controlplane_db.startup` owner adoption, approved
+2026-10-04. Other deployments require their own adoption decision.
 Never append new revisions to the mixed chain. CI checks its frozen files and
 compares fresh owner-chain databases with the 0053 reference schema.
