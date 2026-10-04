@@ -1,12 +1,12 @@
 # controlplane-db package context
 
 ## Ownership
-Shared SQLAlchemy models and Alembic migrations. Database schema ownership lives here; service behavior remains with its service.
+Platform SQLAlchemy models and the existing mixed Alembic chain. Product and operator models live in their owners (see `scripts/ownership.json`). The migration-only `alembic.legacy_models` registry is frozen; never import it in runtime services.
 
 ## Public interface
 The exact public Python modules are the `controlplane_db` entries in [`scripts/import_boundaries.json`](../../../scripts/import_boundaries.json).
 The contract is exact-module based, not permission to import every descendant.
-Declared modules: `controlplane_db.models`, `controlplane_db.session`.
+Declared modules: `controlplane_db.base`, `controlplane_db.models`, `controlplane_db.session`.
 
 ## Source of truth
 Start with [README.md](README.md) and the package's source/tests. Repository dependency policy: [../../../AGENTS.md](../../../AGENTS.md).
