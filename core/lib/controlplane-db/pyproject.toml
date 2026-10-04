@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-only-include = ["src/controlplane_db"]
+packages = ["src/controlplane_db"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/controlplane_db"]

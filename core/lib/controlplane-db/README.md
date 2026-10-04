@@ -45,3 +45,16 @@ Workspace package `core/tests` runs Testcontainers Postgres, migrates with Alemb
 ```bash
 cd core/tests && uv run pytest tests/integration/test_rls_tenant_isolation.py tests/integration/test_aiuditor_rls.py -m integration -v
 ```
+
+## Owner migration chains (WP-INV-03)
+
+The public `controlplane_db.migrations` runner creates owner schemas from frozen
+0053 baselines, with independent version tables for platform, events, Hypermesh,
+AIuditor and payment-service. See the [owner-chain runbook](../../../docs/inversion.md#wp-inv-03-owner-migration-chains).
+The package contains portable owner folders in `src/controlplane_db/migration_chains`
+during Phase A. Every baseline includes real database schema beyond the ORM.
+
+`alembic.ini` and existing startup entrypoints still use the frozen mixed chain;
+Ops must approve baseline stamping and the startup switch after testing a copy.
+Never append new revisions to the mixed chain. CI checks its frozen files and
+compares fresh owner-chain databases with the 0053 reference schema.
