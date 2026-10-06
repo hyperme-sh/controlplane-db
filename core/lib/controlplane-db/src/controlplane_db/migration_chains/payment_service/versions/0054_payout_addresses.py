@@ -13,7 +13,12 @@ depends_on = None
 def upgrade():
     op.create_table(
         "host_payout_addresses",
-        sa.Column("tenant_id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
         sa.Column("host_org_id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("chain_id", sa.Integer(), primary_key=True),
         sa.Column("address", sa.String(42), nullable=False),
