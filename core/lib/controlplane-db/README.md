@@ -59,3 +59,12 @@ the test VM overlay selects `controlplane_db.startup` owner adoption, approved
 2026-10-04. Other deployments require their own adoption decision.
 Never append new revisions to the mixed chain. CI checks its frozen files and
 compares fresh owner-chain databases with the 0053 reference schema.
+
+Owner revisions after the baseline add current tables without changing the frozen
+0053 inventory. A chain's `tables` lists its current owned tables; `baseline_tables`,
+when present, lists only tables created by its frozen baseline SQL. Baseline
+adoption checks the latter, then applies forward revisions. CI verifies that
+inventory against the frozen SQL so later additions cannot weaken adoption checks.
+Payment-service's `payment_service_0054_payout_addr` adds `host_payout_addresses`
+with Base chain constraints, required proof evidence hashes and forced tenant RLS.
+It adds storage only; authorized enrollment and persistence remain separate work.

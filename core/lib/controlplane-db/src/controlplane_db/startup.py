@@ -20,7 +20,9 @@ def _owners(database_url: str, root: Path = migrations._ROOT) -> None:
             versions = migrations._versions(connection, root)
             legacy = migrations._legacy_revision(connection)
             tables = set(inspect(connection).get_table_names(schema='public'))
-            expected = {table for entry in registry['chains'].values() for table in entry['tables']}
+            current_tables = {table for entry in registry['chains'].values() for table in entry['tables']}
+            expected = {table for entry in registry['chains'].values()
+                        for table in entry.get('baseline_tables', entry['tables'])}
             if legacy is not None and legacy != registry['source_revision']:
                 raise ValueError('upgrade the old chain to 0053_onboarding_runs before test reload')
             if all(value is None for value in versions.values()):
@@ -29,7 +31,7 @@ def _owners(database_url: str, root: Path = migrations._ROOT) -> None:
                         raise ValueError('mixed-chain database is missing baseline tables')
                     for chain, entry in registry['chains'].items():
                         command.stamp(migrations._config(root, chain, connection), entry['baseline'])
-                elif expected.intersection(tables):
+                elif current_tables.intersection(tables):
                     raise ValueError('unversioned existing tables require reviewed baseline adoption')
             elif any(value is None for value in versions.values()):
                 raise ValueError('partial owner adoption requires review before test reload')

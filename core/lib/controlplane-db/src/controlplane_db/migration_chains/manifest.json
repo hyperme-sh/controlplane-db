@@ -112,8 +112,11 @@
     "payment_service": {
       "baseline": "payment_service_0053_baseline",
       "version_table": "alembic_version_payment_service",
-      "tables": [],
-      "baseline_sha256": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8"
+      "tables": [
+        "host_payout_addresses"
+      ],
+      "baseline_sha256": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8",
+      "baseline_tables": []
     }
   },
   "frozen_legacy": {

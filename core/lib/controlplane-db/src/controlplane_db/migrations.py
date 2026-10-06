@@ -106,7 +106,7 @@ def stamp_baselines(database_url: str, registry_path: Path | None = None) -> Non
             if _legacy_revision(connection) != registry['source_revision']:
                 raise ValueError('upgrade the old chain to 0053_onboarding_runs before stamping')
             tables = set(inspect(connection).get_table_names(schema='public'))
-            expected = {table for entry in registry['chains'].values() for table in entry['tables']}
+            expected = {table for entry in registry['chains'].values() for table in entry.get('baseline_tables', entry['tables'])}
             if not expected <= tables:
                 raise ValueError('mixed-chain database is missing baseline tables')
             versions = _versions(connection, root)
