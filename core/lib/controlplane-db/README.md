@@ -68,3 +68,14 @@ inventory against the frozen SQL so later additions cannot weaken adoption check
 Payment-service's `payment_service_0054_payout_addr` adds `host_payout_addresses`
 with Base chain constraints, required proof evidence hashes and forced tenant RLS.
 It adds storage only; authorized enrollment and persistence remain separate work.
+
+### Tenant identity bindings
+
+Platform revision `platform_0054_subject_scope` replaces the legacy global
+Keycloak-subject unique index with separate platform and per-tenant constraints.
+The same identity can retain its platform account and join a tenant, including
+the configured network-operator membership. Existing rows, roles and subject
+bindings are preserved; inactive and deleted memberships still reserve their
+identity within that scope. Run the normal owner-chain migration before deploying
+writers that create these memberships. A downgrade refuses to collapse identities
+that now have multiple memberships; it never deletes or unbinds accounts.

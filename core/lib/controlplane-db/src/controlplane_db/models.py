@@ -60,6 +60,16 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         Index(
+            "uq_users_tenant_keycloak_sub", "tenant_id", "keycloak_sub",
+            unique=True,
+            postgresql_where=text("tenant_id IS NOT NULL AND keycloak_sub IS NOT NULL"),
+        ),
+        Index(
+            "uq_users_platform_keycloak_sub", "keycloak_sub",
+            unique=True,
+            postgresql_where=text("tenant_id IS NULL AND keycloak_sub IS NOT NULL"),
+        ),
+        Index(
             "uq_users_tenant_email",
             "tenant_id",
             "email",
