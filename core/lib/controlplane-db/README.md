@@ -75,6 +75,8 @@ gets an owner only when its active bound devices belong to one organization;
 every other site keeps a null owner and is logged by tenant and `site_id`. The
 backfill lifts FORCE row security on `hypermesh_devices` and
 `hypermesh_site_tokens` for its read and restores it in the same transaction.
+It also revokes every live site token, since tokens minted before sites had
+owners cannot be attributed to an organization; owners mint new ones.
 
 ### Tenant identity bindings
 

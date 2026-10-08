@@ -5,6 +5,11 @@ bound devices. A site with no active bound devices, or whose devices belong to
 several organizations, keeps owner_org NULL and is logged by tenant and
 site_id; host support assigns those owners afterwards. Sites referenced only by
 site tokens are included.
+
+Every site token that is still live is revoked. Before this revision any tenant
+session could mint a token for any site_id, so an existing token cannot be
+attributed to the organization the backfill selects. The owner mints new tokens
+after the upgrade.
 """
 
 import logging
@@ -81,9 +86,26 @@ def upgrade():
     tokens = bind.execute(
         sa.text("SELECT DISTINCT tenant_id, site_id FROM hypermesh_site_tokens")
     ).all()
+    now = datetime.now(UTC)
+    # Tokens minted before sites had owners carry no organization; none may
+    # act for the owner chosen below.
+    revoked = bind.execute(
+        sa.text(
+            "UPDATE hypermesh_site_tokens SET revoked_at = :now "
+            "WHERE revoked_at IS NULL RETURNING tenant_id, site_id"
+        ),
+        {"now": now},
+    ).all()
     op.execute("ALTER TABLE hypermesh_devices FORCE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE hypermesh_site_tokens FORCE ROW LEVEL SECURITY")
-    now = datetime.now(UTC)
+    for tenant_id, site_id in sorted({(str(t), s) for t, s in revoked}):
+        logger.warning(
+            "hypermesh_sites backfill: site %s (tenant %s) site tokens revoked; "
+            "the owner organization mints new ones",
+            site_id,
+            tenant_id,
+        )
+    logger.info("hypermesh_sites backfill: %d live site tokens revoked", len(revoked))
     plan = plan_site_owners(devices, tokens)
     for tenant_id, site_id, owner_org, reason in plan:
         if reason is not None:
