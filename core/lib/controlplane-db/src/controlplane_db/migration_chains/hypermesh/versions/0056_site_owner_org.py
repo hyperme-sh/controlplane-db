@@ -155,6 +155,16 @@ def upgrade():
         )
 
 
+    # Site-token verification has only the bearer secret, so it cannot select
+    # a tenant first. This policy shows the one row whose hash the verifying
+    # transaction set, so the lookup is a single indexed query.
+    op.execute(
+        "CREATE POLICY site_token_lookup_by_hash ON hypermesh_site_tokens FOR SELECT "
+        "USING (secret_hash = nullif(current_setting('app.site_token_hash', true), ''))"
+    )
+
+
 def downgrade():
     # Earlier code does not read site owners; a later upgrade backfills again.
+    op.execute("DROP POLICY IF EXISTS site_token_lookup_by_hash ON hypermesh_site_tokens")
     op.drop_table("hypermesh_sites")
