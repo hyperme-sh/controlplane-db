@@ -66,9 +66,6 @@ def upgrade():
         sa.Column("site_id", sa.String(128), primary_key=True),
         sa.Column("owner_org", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        # Set when host support changes the owner; tokens issued earlier stop
-        # acting for the site. Backfilled rows leave it NULL.
-        sa.Column("owner_set_at", sa.DateTime(timezone=True), nullable=True),
     )
     bind = op.get_bind()
     # Both source tables FORCE row level security, which hides every tenant's
