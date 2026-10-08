@@ -401,7 +401,7 @@ class SociaclShareLink(Base):
 
 
 class SociaclRecoverySession(Base):
-    """Recovery flow metadata only — no secrets (see product sign-off before expanding)."""
+    """Recovery flow metadata only — no secrets (see product approval before expanding)."""
 
     __tablename__ = "sociacl_recovery_sessions"
     __table_args__ = (Index("ix_sociacl_recovery_sessions_tenant", "tenant_id"),)
