@@ -69,6 +69,13 @@ Payment-service's `payment_service_0054_payout_addr` adds `host_payout_addresses
 with Base chain constraints, required proof evidence hashes and forced tenant RLS.
 It adds storage only; authorized enrollment and persistence remain separate work.
 
+Hypermesh's `hypermesh_0056_site_owner_org` adds `hypermesh_sites` with forced
+tenant RLS and backfills each site's `owner_org` while the upgrade runs. A site
+gets an owner only when its active bound devices belong to one organization;
+every other site keeps a null owner and is logged by tenant and `site_id`. The
+backfill lifts FORCE row security on `hypermesh_devices` and
+`hypermesh_site_tokens` for its read and restores it in the same transaction.
+
 ### Tenant identity bindings
 
 Platform revision `platform_0054_subject_scope` replaces the legacy global
