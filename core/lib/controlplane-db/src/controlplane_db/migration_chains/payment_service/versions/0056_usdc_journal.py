@@ -152,6 +152,7 @@ def upgrade():
 
 def downgrade():
     # Financial records cannot be discarded by a schema rollback.
+    # FORCE RLS without BYPASSRLS raises here: rollback fails closed.
     op.execute("SET LOCAL row_security = off")
     op.execute(
         "LOCK TABLE public.usdc_ledger_postings, public.usdc_ledger_entries IN ACCESS EXCLUSIVE MODE"
