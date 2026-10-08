@@ -24,7 +24,9 @@ def upgrade():
         sa.Column(
             "hd_index",
             sa.Integer(),
-            sa.Identity(start=0, minvalue=0, maxvalue=2147483647, cycle=False),
+            sa.Identity(
+                always=True, start=0, minvalue=0, maxvalue=2147483647, cycle=False
+            ),
             nullable=False,
         ),
         sa.Column("address", sa.String(42), nullable=False),
@@ -127,6 +129,24 @@ def upgrade():
         "CREATE TRIGGER usdc_deposit_immutable BEFORE UPDATE ON usdc_deposit_addresses FOR EACH ROW EXECUTE FUNCTION public.usdc_journal_immutable()"
     )
 
+    op.execute("""
+    CREATE FUNCTION public.usdc_intent_progress_only() RETURNS trigger
+    LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+    BEGIN
+      IF (to_jsonb(NEW) - 'status' - 'received_atoms') IS DISTINCT FROM
+         (to_jsonb(OLD) - 'status' - 'received_atoms') OR
+         NEW.received_atoms < OLD.received_atoms OR
+         (OLD.status IN ('paid', 'expired', 'cancelled') AND
+          (NEW.status <> OLD.status OR NEW.received_atoms <> OLD.received_atoms)) OR
+         (OLD.status = 'partially_paid' AND NEW.status = 'open') THEN
+        RAISE EXCEPTION 'USDC intent history cannot be rewritten' USING ERRCODE = '23514';
+      END IF;
+      RETURN NEW;
+    END $$;
+    CREATE TRIGGER usdc_intent_progress BEFORE UPDATE ON public.usdc_payment_intents
+      FOR EACH ROW EXECUTE FUNCTION public.usdc_intent_progress_only();
+    """)
+
 
 def downgrade():
     # A non-BYPASSRLS migrator fails closed rather than hiding financial records.
@@ -141,3 +161,4 @@ def downgrade():
     END $$;""")
     op.drop_table("usdc_payment_intents")
     op.drop_table("usdc_deposit_addresses")
+    op.execute("DROP FUNCTION public.usdc_intent_progress_only()")
