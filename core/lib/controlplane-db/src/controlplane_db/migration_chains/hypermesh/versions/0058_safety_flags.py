@@ -1,9 +1,9 @@
-"""Flagged requests from automated safety screening, kept for operator review.
+"""Flagged requests (automated safety screening), held for operator review.
 
 Only flagged requests are stored. Rows are tenant scoped with forced row level
-security. The retention sweep deletes a row one year after its review is
-closed, or one year after it was created when it is never reviewed; a delete
-policy limited to expired rows lets the sweep run without enumerating tenants.
+security. The retention sweep deletes a row one year after its review closes,
+else one year after creation when it is never reviewed; a delete policy
+limited to expired rows lets the sweep run without enumerating tenants.
 """
 
 import sqlalchemy as sa
