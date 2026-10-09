@@ -30,6 +30,7 @@ def upgrade():
         sa.Column("chain_id", sa.Integer(), nullable=False),
         sa.Column("livemode", sa.Boolean(), nullable=False),
         sa.Column("destination_amount_atoms", sa.BigInteger(), nullable=False),
+        sa.Column("fulfilled_amount_atoms", sa.BigInteger(), nullable=True),
         sa.Column("transaction_id", sa.String(66), nullable=True),
         sa.Column(
             "status", sa.String(32), server_default="initialized", nullable=False
@@ -62,7 +63,7 @@ def upgrade():
             name="ck_onramp_status",
         ),
         sa.CheckConstraint(
-            "(status = 'fulfillment_complete' AND transaction_id ~ '^0x[0-9a-f]{64}$' AND transaction_id IS NOT NULL) OR (status <> 'fulfillment_complete' AND transaction_id IS NULL)",
+            "(status = 'fulfillment_complete' AND transaction_id ~ '^0x[0-9a-f]{64}$' AND transaction_id IS NOT NULL AND fulfilled_amount_atoms IS NOT NULL AND fulfilled_amount_atoms > 0) OR (status <> 'fulfillment_complete' AND transaction_id IS NULL AND fulfilled_amount_atoms IS NULL)",
             name="ck_onramp_evidence",
         ),
     )
@@ -86,8 +87,8 @@ def upgrade():
     CREATE FUNCTION public.onramp_progress_only() RETURNS trigger
     LANGUAGE plpgsql SET search_path = pg_catalog AS $$
     BEGIN
-      IF (to_jsonb(NEW) - 'status' - 'transaction_id') IS DISTINCT FROM
-         (to_jsonb(OLD) - 'status' - 'transaction_id') OR
+      IF (to_jsonb(NEW) - 'status' - 'transaction_id' - 'fulfilled_amount_atoms') IS DISTINCT FROM
+         (to_jsonb(OLD) - 'status' - 'transaction_id' - 'fulfilled_amount_atoms') OR
          (OLD.status IN ('fulfillment_complete', 'rejected') AND to_jsonb(NEW) IS DISTINCT FROM (to_jsonb(OLD))) OR
          (OLD.status = 'requires_payment' AND NEW.status = 'initialized') OR
          (OLD.status = 'fulfillment_processing' AND NEW.status IN ('initialized', 'requires_payment')) THEN
