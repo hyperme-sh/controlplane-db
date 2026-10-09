@@ -31,6 +31,13 @@ def upgrade():
         sa.CheckConstraint("state IN ('planned', 'reported', 'revoked', 'expired')", name="ck_hm_validation_state"),
     )
     op.create_index("ix_hm_validation_owner", "hypermesh_model_validations", ["tenant_id", "owner_sub", "revision_id"])
+    # Live queue lookup: next_lab_job() polls planned rows per (tenant, lab device).
+    op.create_index(
+        "ix_hm_validation_planned_device",
+        "hypermesh_model_validations",
+        ["tenant_id", "lab_device_id", "created_at", "expires_at"],
+        postgresql_where=sa.text("state = 'planned'"),
+    )
     op.execute("ALTER TABLE hypermesh_model_validations ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE hypermesh_model_validations FORCE ROW LEVEL SECURITY")
     op.execute("""CREATE POLICY tenant_isolation ON hypermesh_model_validations
