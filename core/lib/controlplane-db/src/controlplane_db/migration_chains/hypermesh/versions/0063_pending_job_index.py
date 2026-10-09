@@ -1,6 +1,7 @@
 """Bound per-device pending job polling to the active queue."""
-from alembic import op
+
 import sqlalchemy as sa
+from alembic import op
 
 revision = "hypermesh_0063_pending_jobs"
 down_revision = "hypermesh_0062_payment_claim"
