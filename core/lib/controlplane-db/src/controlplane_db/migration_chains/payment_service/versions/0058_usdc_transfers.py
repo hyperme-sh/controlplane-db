@@ -97,7 +97,13 @@ def upgrade():
     CREATE FUNCTION public.usdc_transfer_progress_only() RETURNS trigger
     LANGUAGE plpgsql SET search_path = pg_catalog AS $$
     BEGIN
-      IF (to_jsonb(NEW) - 'status' - 'intent_id') IS DISTINCT FROM
+      IF TG_OP = 'INSERT' THEN
+        IF NEW.status <> 'seen' THEN
+          RAISE EXCEPTION 'USDC transfers must begin as seen' USING ERRCODE = '23514';
+        END IF;
+        RETURN NEW;
+      END IF;
+      IF (OLD.status = 'seen' AND NEW.status = 'final') OR (to_jsonb(NEW) - 'status' - 'intent_id') IS DISTINCT FROM
          (to_jsonb(OLD) - 'status' - 'intent_id') OR
          (OLD.intent_id IS NOT NULL AND NEW.intent_id IS DISTINCT FROM (OLD.intent_id)) OR
          (OLD.status IN ('final', 'reorged') AND NEW.status <> OLD.status) OR
@@ -106,7 +112,7 @@ def upgrade():
       END IF;
       RETURN NEW;
     END $$;
-    CREATE TRIGGER usdc_transfer_progress BEFORE UPDATE ON public.usdc_chain_transfers
+    CREATE TRIGGER usdc_transfer_progress BEFORE INSERT OR UPDATE ON public.usdc_chain_transfers
       FOR EACH ROW EXECUTE FUNCTION public.usdc_transfer_progress_only();
     CREATE TRIGGER usdc_transfer_delete BEFORE DELETE ON public.usdc_chain_transfers
       FOR EACH ROW EXECUTE FUNCTION public.usdc_journal_immutable();
