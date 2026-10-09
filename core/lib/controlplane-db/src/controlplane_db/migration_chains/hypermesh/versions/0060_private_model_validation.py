@@ -1,4 +1,4 @@
-"""Private lab assignment and exact admission scope, separate from certification."""
+"""Private lab assignment and exact admission scope; public certification stays separate."""
 
 import sqlalchemy as sa
 from alembic import op
