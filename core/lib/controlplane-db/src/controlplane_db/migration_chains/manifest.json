@@ -76,6 +76,7 @@
         "hypermesh_jobs",
         "hypermesh_lease_audit",
         "hypermesh_leases",
+        "hypermesh_model_revisions",
         "hypermesh_onboarding_runs",
         "hypermesh_orders",
         "hypermesh_payouts",
