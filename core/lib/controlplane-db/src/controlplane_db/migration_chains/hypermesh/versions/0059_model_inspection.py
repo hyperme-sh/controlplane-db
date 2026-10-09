@@ -25,6 +25,10 @@ def upgrade():
     )
     op.add_column(
         "hypermesh_model_revisions",
+        sa.Column("inspection_failures", JSONB(), nullable=True),
+    )
+    op.add_column(
+        "hypermesh_model_revisions",
         sa.Column("inspection_claim_id", UUID(as_uuid=True), nullable=True),
     )
     op.add_column(
