@@ -139,6 +139,7 @@
         "aiuditor_envelopes",
         "aiuditor_machine_identities",
         "aiuditor_policies",
+        "aiuditor_private_model_admissions",
         "aiuditor_suite_members",
         "aiuditor_violations"
       ],
