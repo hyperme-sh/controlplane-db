@@ -168,6 +168,8 @@
         "usdc_deposit_addresses",
         "usdc_ledger_entries",
         "usdc_ledger_postings",
+        "onramp_sessions",
+        "usdc_outbound_transfers",
         "usdc_payment_intents"
       ],
       "baseline_sha256": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8",

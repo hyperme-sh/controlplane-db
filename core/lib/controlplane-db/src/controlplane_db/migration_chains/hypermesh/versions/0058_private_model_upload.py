@@ -5,7 +5,7 @@ from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 revision = "hypermesh_0058_model_upload"
-down_revision = "hypermesh_0057_lease_usdc"
+down_revision = "hypermesh_0059_lease_close_at"
 branch_labels = None
 depends_on = None
 
