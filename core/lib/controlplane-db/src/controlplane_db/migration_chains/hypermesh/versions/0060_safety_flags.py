@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "hypermesh_0060_safety_flags"
-down_revision = "hypermesh_0058_model_upload"
+down_revision = "hypermesh_0059_model_inspection"
 branch_labels = None
 depends_on = None
 
