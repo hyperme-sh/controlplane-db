@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "hypermesh_0058_safety_flags"
-down_revision = "hypermesh_0057_lease_usdc"
+revision = "hypermesh_0060_safety_flags"
+down_revision = "hypermesh_0059_lease_close_at"
 branch_labels = None
 depends_on = None
 
