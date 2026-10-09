@@ -35,6 +35,9 @@ def upgrade():
         sa.Column("rule_id", sa.String(128), nullable=False),
         sa.Column("classifier_version", sa.String(64), nullable=False),
         sa.Column("flagged_text", sa.Text(), nullable=False),
+        sa.Column(
+            "text_withheld", sa.Boolean(), nullable=False, server_default=sa.text("false")
+        ),
         sa.Column("occurred_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("review_closed_at", sa.DateTime(timezone=True), nullable=True),
@@ -62,6 +65,11 @@ def upgrade():
         "ix_hypermesh_safety_flags_open",
         "hypermesh_safety_flags",
         ["tenant_id", "created_at"],
+    )
+    op.create_index(
+        "ix_hypermesh_safety_flags_lease",
+        "hypermesh_safety_flags",
+        ["tenant_id", "lease_id", "created_at"],
     )
     op.create_index(
         "ix_hypermesh_safety_flags_retention",
