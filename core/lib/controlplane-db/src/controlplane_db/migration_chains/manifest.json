@@ -79,6 +79,7 @@
         "hypermesh_model_revisions",
         "hypermesh_model_storage_health",
 
+        "hypermesh_payment_callback_claims",
         "hypermesh_model_poll_claims",
         "hypermesh_model_validations",
         "hypermesh_onboarding_runs",
@@ -90,6 +91,7 @@
         "hypermesh_pricing_rounds",
         "hypermesh_privilege_grants",
         "hypermesh_revoked_tickets",
+        "hypermesh_safety_flags",
         "hypermesh_scorecards",
         "hypermesh_site_tokens",
         "hypermesh_sites",
