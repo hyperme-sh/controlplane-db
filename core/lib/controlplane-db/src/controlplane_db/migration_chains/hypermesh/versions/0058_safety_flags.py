@@ -2,7 +2,8 @@
 
 Only flagged requests are stored. Rows are tenant scoped with forced row level
 security. The retention sweep deletes a row one year after its review is
-closed, or one year after it was created when it is never reviewed.
+closed, or one year after it was created when it is never reviewed; a delete
+policy limited to expired rows lets the sweep run without enumerating tenants.
 """
 
 import sqlalchemy as sa
@@ -83,6 +84,19 @@ def upgrade():
         op.execute(
             f"CREATE POLICY tenant_isolation_{operation.lower()} ON hypermesh_safety_flags "
             f"FOR {operation} {clause}"
+        )
+    # The retention sweep runs without a tenant. These policies match only
+    # rows already past retention, and only in a transaction that set
+    # app.safety_flag_retention. PostgreSQL applies SELECT policies to the
+    # rows a DELETE ... WHERE reads, so the sweep needs both.
+    expired = (
+        "current_setting('app.safety_flag_retention', true) = 'on' "
+        "AND coalesce(review_closed_at, created_at) < now() - interval '365 days'"
+    )
+    for operation in ("SELECT", "DELETE"):
+        op.execute(
+            f"CREATE POLICY safety_flag_retention_{operation.lower()} ON hypermesh_safety_flags "
+            f"FOR {operation} USING ({expired})"
         )
 
 
