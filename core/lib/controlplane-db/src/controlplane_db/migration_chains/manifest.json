@@ -164,6 +164,7 @@
         "usdc_deposit_addresses",
         "usdc_ledger_entries",
         "usdc_ledger_postings",
+        "onramp_sessions",
         "usdc_outbound_transfers",
         "usdc_payment_intents"
       ],
