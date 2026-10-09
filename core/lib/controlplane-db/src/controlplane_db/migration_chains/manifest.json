@@ -79,6 +79,7 @@
         "hypermesh_model_revisions",
         "hypermesh_model_storage_health",
 
+        "hypermesh_model_account_budgets",
         "hypermesh_model_poll_claims",
         "hypermesh_model_validations",
         "hypermesh_onboarding_runs",
