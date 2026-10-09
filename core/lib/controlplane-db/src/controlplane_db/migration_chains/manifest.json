@@ -160,6 +160,7 @@
       "version_table": "alembic_version_payment_service",
       "tables": [
         "host_payout_addresses",
+        "usdc_chain_transfers",
         "usdc_deposit_addresses",
         "usdc_ledger_entries",
         "usdc_ledger_postings",
