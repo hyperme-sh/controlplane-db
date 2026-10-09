@@ -77,6 +77,7 @@
         "hypermesh_lease_audit",
         "hypermesh_leases",
         "hypermesh_model_revisions",
+        "hypermesh_model_storage_health",
         "hypermesh_model_validations",
         "hypermesh_onboarding_runs",
         "hypermesh_orders",
