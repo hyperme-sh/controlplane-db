@@ -26,6 +26,21 @@ def upgrade():
         FROM hypermesh_model_revisions
         WHERE state <> 'deleted' GROUP BY storage_account""")
     op.execute("SET LOCAL row_security = on")
+    # Revision rows can also disappear through a tenant cascade, which never
+    # reaches the cleanup path. Release their entries when such a row is
+    # deleted before its cleanup completed.
+    op.execute("""CREATE OR REPLACE FUNCTION hm_release_model_account_entries() RETURNS trigger AS $$
+        BEGIN
+            IF OLD.state <> 'deleted' THEN
+                UPDATE hypermesh_model_account_budgets
+                SET reserved_entries = greatest(reserved_entries - jsonb_array_length(OLD.manifest) * 2, 0)
+                WHERE account = OLD.storage_account;
+            END IF;
+            RETURN OLD;
+        END $$ LANGUAGE plpgsql""")
+    op.execute("DROP TRIGGER IF EXISTS hm_model_revision_release_entries ON hypermesh_model_revisions")
+    op.execute("""CREATE TRIGGER hm_model_revision_release_entries BEFORE DELETE
+        ON hypermesh_model_revisions FOR EACH ROW EXECUTE FUNCTION hm_release_model_account_entries()""")
 
 
 def downgrade():
