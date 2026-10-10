@@ -175,6 +175,7 @@
         "usdc_ledger_entries",
         "usdc_ledger_postings",
         "onramp_sessions",
+        "connect_recipient_accounts",
         "usdc_outbound_transfers",
         "usdc_payment_intents"
       ],
