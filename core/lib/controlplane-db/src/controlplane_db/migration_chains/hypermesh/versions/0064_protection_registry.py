@@ -4,7 +4,7 @@ from sqlalchemy.dialects import postgresql as pg
 from alembic import op
 
 revision = "hypermesh_0064_protection"
-down_revision = "hypermesh_0063_model_budget"
+down_revision = "hypermesh_0064_offer_request"
 branch_labels = None
 depends_on = None
 
