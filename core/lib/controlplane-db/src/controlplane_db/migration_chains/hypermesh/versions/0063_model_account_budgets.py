@@ -19,10 +19,12 @@ def upgrade():
     )
     # Fail the migration if its privileged role cannot inventory every tenant;
     # silently applying tenant filtering here would under-reserve the account.
+    # Revisions whose cleanup completed no longer hold account entries.
     op.execute("SET LOCAL row_security = off")
     op.execute("""INSERT INTO hypermesh_model_account_budgets (account, reserved_entries)
         SELECT storage_account, sum(jsonb_array_length(manifest) * 2)
-        FROM hypermesh_model_revisions GROUP BY storage_account""")
+        FROM hypermesh_model_revisions
+        WHERE state <> 'deleted' GROUP BY storage_account""")
     op.execute("SET LOCAL row_security = on")
 
 
