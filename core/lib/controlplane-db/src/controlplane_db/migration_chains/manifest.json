@@ -77,6 +77,8 @@
         "hypermesh_lease_audit",
         "hypermesh_leases",
         "hypermesh_model_revisions",
+        "hypermesh_payment_callback_claims",
+        "hypermesh_model_poll_claims",
         "hypermesh_model_validations",
         "hypermesh_onboarding_runs",
         "hypermesh_orders",
