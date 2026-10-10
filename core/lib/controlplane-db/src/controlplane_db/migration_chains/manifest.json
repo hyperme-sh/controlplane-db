@@ -76,9 +76,9 @@
         "hypermesh_jobs",
         "hypermesh_lease_audit",
         "hypermesh_leases",
+        "hypermesh_protection_approvals",
         "hypermesh_model_revisions",
         "hypermesh_model_storage_health",
-
         "hypermesh_model_account_budgets",
 
         "hypermesh_payment_callback_claims",
