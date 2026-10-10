@@ -3,7 +3,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "hypermesh_0064_offer_request"
-down_revision = "hypermesh_0062_model_lifecycle"
+down_revision = "hypermesh_0063_model_budget"
 branch_labels = None
 depends_on = None
 
