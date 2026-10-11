@@ -19,6 +19,16 @@ depends_on = None
 
 
 def upgrade():
+    op.execute("""DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='payment_mismatch_actor') THEN
+            CREATE ROLE payment_mismatch_actor NOSUPERUSER NOBYPASSRLS NOLOGIN;
+        END IF;
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='payment_mismatch_actor'
+                   AND (rolsuper OR rolbypassrls OR rolcanlogin)) THEN
+            RAISE EXCEPTION 'payment_mismatch_actor must be a restricted NOLOGIN role';
+        END IF;
+        EXECUTE format('GRANT payment_mismatch_actor TO %I', current_user);
+    END $$;""")
     op.create_table(
         "payer_mismatch_accounts",
         Column("account_key", String(64), primary_key=True),
@@ -42,6 +52,12 @@ def upgrade():
             "reserved_count <= 2 AND reserved_cents <= 5000", name="ck_mismatch_budget"
         ),
     )
+    op.execute(
+        "GRANT SELECT, INSERT ON payer_mismatch_accounts TO payment_mismatch_actor"
+    )
+    op.execute(
+        "GRANT UPDATE(day, mismatches, reserved_count, reserved_cents, last_mismatch_at, last_checkout_at) ON payer_mismatch_accounts TO payment_mismatch_actor"
+    )
     op.execute("ALTER TABLE payer_mismatch_accounts ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE payer_mismatch_accounts FORCE ROW LEVEL SECURITY")
     op.execute("""CREATE POLICY mismatch_actor_policy ON payer_mismatch_accounts
@@ -52,6 +68,7 @@ def upgrade():
 def downgrade():
     op.execute("SET LOCAL row_security = off")
     op.execute("LOCK TABLE public.payer_mismatch_accounts IN ACCESS EXCLUSIVE MODE")
+    op.execute("ALTER TABLE public.payer_mismatch_accounts NO FORCE ROW LEVEL SECURITY")
     if (
         op.get_bind()
         .execute(text("SELECT EXISTS (SELECT 1 FROM payer_mismatch_accounts)"))
