@@ -80,7 +80,6 @@
         "hypermesh_model_revisions",
         "hypermesh_model_storage_health",
         "hypermesh_model_account_budgets",
-
         "hypermesh_payment_callback_claims",
         "hypermesh_model_poll_claims",
         "hypermesh_model_validations",
@@ -177,7 +176,8 @@
         "onramp_sessions",
         "connect_recipient_accounts",
         "usdc_outbound_transfers",
-        "usdc_payment_intents"
+        "usdc_payment_intents",
+        "payer_mismatch_accounts"
       ],
       "baseline_sha256": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8",
       "baseline_tables": []
