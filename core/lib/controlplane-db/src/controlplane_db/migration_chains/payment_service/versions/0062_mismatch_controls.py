@@ -50,6 +50,8 @@ def upgrade():
 
 
 def downgrade():
+    op.execute("SET LOCAL row_security = off")
+    op.execute("LOCK TABLE public.payer_mismatch_accounts IN ACCESS EXCLUSIVE MODE")
     if (
         op.get_bind()
         .execute(text("SELECT EXISTS (SELECT 1 FROM payer_mismatch_accounts)"))
