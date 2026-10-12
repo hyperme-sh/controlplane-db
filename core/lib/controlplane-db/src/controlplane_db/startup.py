@@ -1,8 +1,10 @@
 """Deployment startup selection; owner adoption is enabled by the test VM overlay.
 
 Owners mode keeps booting when a chain's database revision is ahead of this
-image. Migrations are expand-only, so an N-1 image must run on an N schema
-and this path leaves that newer schema in place.
+image and leaves that newer schema in place. This only lets the image boot.
+It does not check that the image works against the newer schema: that depends
+on the migrations between the two being expand-only, which startup cannot
+verify.
 """
 from __future__ import annotations
 

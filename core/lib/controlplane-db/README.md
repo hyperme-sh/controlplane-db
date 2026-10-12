@@ -60,14 +60,18 @@ the test VM overlay selects `controlplane_db.startup` owner adoption, approved
 Never append new revisions to the mixed chain. CI checks its frozen files and
 compares fresh owner-chain databases with the 0053 reference schema.
 
-Owner migrations are expand-only: an N-1 image must keep running on an N schema.
+Owner migrations should be expand-only so an N-1 image keeps running on an N
+schema. Nothing enforces that yet, and some existing ones are not (for example
+`platform_0054_subject_scope` drops the global `keycloak_sub` unique index).
 After a rollback retags an older image onto a database a newer deploy already
 migrated, owners-mode startup reads each chain's version row. When that
 revision is not in the image (Alembic "Can't locate revision" for the database's
 current revision), startup only skips that chain when the revision can be a
 later one: it uses the chain's `<chain>_<NNNN>_<slug>` id format and every table
 the chain owns exists. It then logs a warning naming the chain, the database revision, and the image head, and
-continues booting. The version row and schema stay as they are. An unknown
+continues booting. The version row and schema stay as they are. This lets the
+image boot; it does not prove the image works against the newer schema, so check
+that no migration the rollback skips is contracting before rolling back. An unknown
 revision that is not in the chain's id format (another chain's id, a malformed
 id) or a schema missing the chain's tables fails startup. Revision numbers are
 not monotonic along a chain (`0062_model_lifecycle` follows `0063_pending_jobs`),
