@@ -72,7 +72,9 @@ revision that is not in the chain's id format (another chain's id, a malformed
 id) or a schema missing the chain's tables fails startup. Revision numbers are
 not monotonic along a chain (`0062_model_lifecycle` follows `0063_pending_jobs`),
 so they are never compared. Absence from the image cannot prove lineage, so a
-well-formed id for this chain is trusted. A revision the image does contain still upgrades when it is behind
+well-formed id for this chain is trusted. `scripts/check_migration_chains.py` enforces that every revision in
+an owner chain uses that id format, so a later image cannot ship a revision the
+guard would reject. A revision the image does contain still upgrades when it is behind
 head. Any other Alembic error, and a database with no version table on a
 non-empty schema, still fails startup.
 
