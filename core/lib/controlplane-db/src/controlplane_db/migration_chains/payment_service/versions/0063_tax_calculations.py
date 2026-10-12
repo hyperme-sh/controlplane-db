@@ -175,6 +175,12 @@ def downgrade():
     op.execute(
         "LOCK TABLE public.billing_tax_orders, public.billing_tax_calculations IN ACCESS EXCLUSIVE MODE"
     )
+    # The table owner can inventory all tenants only after FORCE RLS is lifted.
+    # Transactional DDL restores the policies if retained history blocks removal.
+    op.execute("ALTER TABLE public.billing_tax_orders NO FORCE ROW LEVEL SECURITY")
+    op.execute(
+        "ALTER TABLE public.billing_tax_calculations NO FORCE ROW LEVEL SECURITY"
+    )
     op.execute("""DO $$ BEGIN
       IF EXISTS (SELECT 1 FROM public.billing_tax_orders) OR EXISTS (SELECT 1 FROM public.billing_tax_calculations) THEN
         RAISE EXCEPTION 'Cannot remove nonempty tax history';
