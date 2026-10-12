@@ -177,7 +177,9 @@
         "connect_recipient_accounts",
         "usdc_outbound_transfers",
         "usdc_payment_intents",
-        "payer_mismatch_accounts"
+        "payer_mismatch_accounts",
+        "billing_tax_orders",
+        "billing_tax_calculations"
       ],
       "baseline_sha256": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8",
       "baseline_tables": []
