@@ -1,17 +1,69 @@
-"""Deployment startup selection; owner adoption is enabled by the test VM overlay."""
+"""Deployment startup selection; owner adoption is enabled by the test VM overlay.
+
+Owners mode keeps booting when a chain's database revision is ahead of this
+image. Migrations are expand-only, so an N-1 image must run on an N schema
+and this path leaves that newer schema in place.
+"""
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
+from alembic.script.revision import ResolutionError
+from alembic.util.exc import CommandError
 from sqlalchemy import inspect, text
+from sqlalchemy.engine import Connection
 
 from controlplane_db import migrations
 
+_logger = logging.getLogger(__name__)
 
-def _owners(database_url: str, root: Path = migrations._ROOT) -> None:
+
+def _revision_missing_from_image(script: ScriptDirectory, revision: str) -> bool:
+    """True only when Alembic cannot find this database revision in the image.
+
+    ``upgrade`` reports that as ``Can't locate revision identified by '<id>'``
+    with a ``ResolutionError`` cause of ``No such revision or branch``. A known
+    revision, including one that is behind head, resolves and must still
+    upgrade. Any other resolution error, including an ambiguous prefix, raises.
+    """
+    try:
+        script.get_revision(revision)
+    except CommandError as exc:
+        cause = exc.__cause__
+        missing = (
+            str(exc) == f"Can't locate revision identified by '{revision}'"
+            and isinstance(cause, ResolutionError)
+            and str(cause).startswith(f"No such revision or branch '{revision}'")
+        )
+        if missing:
+            return True
+        raise
+    return False
+
+
+def _upgrade_owner_chain(root: Path, chain: str, connection: Connection, revision: str | None) -> None:
+    """Upgrade one owner chain unless its database revision is ahead of this image."""
+    if revision is not None:
+        script = ScriptDirectory.from_config(migrations._config(root, chain))
+        if _revision_missing_from_image(script, revision):
+            _logger.warning(
+                'skipping %s upgrade: database revision %s is not in this image (image head %s)',
+                chain,
+                revision,
+                script.get_current_head(),
+            )
+            return
+    command.upgrade(migrations._config(root, chain, connection), 'head')
+
+
+def _owners(database_url: str, root: Path | None = None) -> None:
+    if root is None:
+        root = migrations._ROOT
     registry = migrations._registry(root)
     engine = migrations._engine(database_url)
     try:
@@ -36,7 +88,7 @@ def _owners(database_url: str, root: Path = migrations._ROOT) -> None:
             elif any(value is None for value in versions.values()):
                 raise ValueError('partial owner adoption requires review before test reload')
             for chain in migrations._ORDER:
-                command.upgrade(migrations._config(root, chain, connection), 'head')
+                _upgrade_owner_chain(root, chain, connection, versions[chain])
     finally:
         engine.dispose()
 

@@ -60,6 +60,16 @@ the test VM overlay selects `controlplane_db.startup` owner adoption, approved
 Never append new revisions to the mixed chain. CI checks its frozen files and
 compares fresh owner-chain databases with the 0053 reference schema.
 
+Owner migrations are expand-only: an N-1 image must keep running on an N schema.
+After a rollback retags an older image onto a database a newer deploy already
+migrated, owners-mode startup reads each chain's version row. When that
+revision is not in the image (Alembic "Can't locate revision" for the database's
+current revision), it logs a warning naming the chain, the database revision,
+and the image head, skips that chain, and continues booting. The version row
+and schema stay as they are. A revision the image does contain still upgrades
+when it is behind head. Any other Alembic error, and a database with no version
+table on a non-empty schema, still fails startup.
+
 Owner revisions after the baseline add current tables without changing the frozen
 0053 inventory. A chain's `tables` lists its current owned tables; `baseline_tables`,
 when present, lists only tables created by its frozen baseline SQL. Baseline
