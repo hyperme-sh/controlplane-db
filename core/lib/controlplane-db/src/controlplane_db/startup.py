@@ -48,10 +48,9 @@ def _revision_missing_from_image(script: ScriptDirectory, revision: str) -> bool
     return False
 
 
-def _sequence(chain: str, revision: str) -> int | None:
-    """Return the number in ``<chain>_<NNNN>_<slug>``, or None for any other id."""
-    match = re.fullmatch(rf'{re.escape(chain)}_(\d{{4}})_[a-z0-9_]+', revision)
-    return int(match.group(1)) if match else None
+def _is_chain_revision(chain: str, revision: str) -> bool:
+    """True for an id in this chain's ``<chain>_<NNNN>_<slug>`` format."""
+    return re.fullmatch(rf'{re.escape(chain)}_\d{{4}}_[a-z0-9_]+', revision) is not None
 
 
 def _require_ahead_of_image(
@@ -61,20 +60,19 @@ def _require_ahead_of_image(
     owned_tables: Collection[str],
     tables: Collection[str],
 ) -> None:
-    """Fail closed unless the unknown revision is a later revision of this chain.
+    """Fail closed unless the unknown revision can be a later revision of this chain.
 
-    Absence from the image alone does not show the database is newer. A typo, a
-    revision of another chain, an older or unrelated id, or a schema missing
-    tables this image needs all stop startup. A later revision uses this
-    chain's ``<chain>_<NNNN>_<slug>`` id with a number at or above the image
-    head's (two revisions can share a number), and the chain's tables exist.
+    Absence from the image alone does not show the database is newer. An id in
+    another chain's format, a malformed id, or a schema missing tables this
+    image needs stops startup. The number in the id is not compared with the
+    image head's: revision numbers are not monotonic along the chain (for
+    example 0062_model_lifecycle follows 0063_pending_jobs), so a number cannot
+    show which side is ahead.
     """
-    found = _sequence(chain, revision)
-    head = _sequence(chain, image_head)
-    if found is None or head is None or found < head:
+    if not _is_chain_revision(chain, revision):
         raise ValueError(
-            f'{chain}: database revision {revision} is not in this image and is not a later '
-            f'revision of this chain (image head {image_head}); refusing to start'
+            f'{chain}: database revision {revision} is not in this image and is not a '
+            f'revision id of this chain (image head {image_head}); refusing to start'
         )
     missing = sorted(set(owned_tables) - set(tables))
     if missing:
