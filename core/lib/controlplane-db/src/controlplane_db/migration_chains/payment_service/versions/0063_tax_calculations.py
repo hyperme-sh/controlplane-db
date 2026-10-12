@@ -32,10 +32,11 @@ def upgrade():
             ForeignKey("tenants.id", ondelete="RESTRICT"),
             nullable=False,
         ),
+        # tax_order_binding validates/locks billing; an FK would alter its
+        # platform-owned table through referenced-side RI triggers.
         Column(
             "billing_record_id",
             UUID(as_uuid=True),
-            ForeignKey("billing_records.id", ondelete="RESTRICT"),
             nullable=False,
         ),
         Column("seller_id", UUID(as_uuid=True), nullable=False),
