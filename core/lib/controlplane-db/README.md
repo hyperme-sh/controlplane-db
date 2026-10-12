@@ -64,11 +64,17 @@ Owner migrations are expand-only: an N-1 image must keep running on an N schema.
 After a rollback retags an older image onto a database a newer deploy already
 migrated, owners-mode startup reads each chain's version row. When that
 revision is not in the image (Alembic "Can't locate revision" for the database's
-current revision), it logs a warning naming the chain, the database revision,
-and the image head, skips that chain, and continues booting. The version row
-and schema stay as they are. A revision the image does contain still upgrades
-when it is behind head. Any other Alembic error, and a database with no version
-table on a non-empty schema, still fails startup.
+current revision), startup only skips that chain when the revision looks like a
+later one: it uses the chain's `<chain>_<NNNN>_<slug>` id with a number at or
+above the image head's, and every table the chain owns exists. It then logs a
+warning naming the chain, the database revision, and the image head, and
+continues booting. The version row and schema stay as they are. An unknown
+revision that is not a later one (a typo, another chain's id, an older or
+malformed id) or a schema missing the chain's tables fails startup. Absence from
+the image cannot prove lineage, so a well-formed id with a high enough number is
+trusted. A revision the image does contain still upgrades when it is behind
+head. Any other Alembic error, and a database with no version table on a
+non-empty schema, still fails startup.
 
 Owner revisions after the baseline add current tables without changing the frozen
 0053 inventory. A chain's `tables` lists its current owned tables; `baseline_tables`,

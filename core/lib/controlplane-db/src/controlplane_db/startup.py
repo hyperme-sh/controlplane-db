@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+from collections.abc import Collection
 from pathlib import Path
 
 from alembic import command
@@ -46,16 +48,61 @@ def _revision_missing_from_image(script: ScriptDirectory, revision: str) -> bool
     return False
 
 
-def _upgrade_owner_chain(root: Path, chain: str, connection: Connection, revision: str | None) -> None:
+def _sequence(chain: str, revision: str) -> int | None:
+    """Return the number in ``<chain>_<NNNN>_<slug>``, or None for any other id."""
+    match = re.fullmatch(rf'{re.escape(chain)}_(\d{{4}})_[a-z0-9_]+', revision)
+    return int(match.group(1)) if match else None
+
+
+def _require_ahead_of_image(
+    chain: str,
+    revision: str,
+    image_head: str,
+    owned_tables: Collection[str],
+    tables: Collection[str],
+) -> None:
+    """Fail closed unless the unknown revision is a later revision of this chain.
+
+    Absence from the image alone does not show the database is newer. A typo, a
+    revision of another chain, an older or unrelated id, or a schema missing
+    tables this image needs all stop startup. A later revision uses this
+    chain's ``<chain>_<NNNN>_<slug>`` id with a number at or above the image
+    head's (two revisions can share a number), and the chain's tables exist.
+    """
+    found = _sequence(chain, revision)
+    head = _sequence(chain, image_head)
+    if found is None or head is None or found < head:
+        raise ValueError(
+            f'{chain}: database revision {revision} is not in this image and is not a later '
+            f'revision of this chain (image head {image_head}); refusing to start'
+        )
+    missing = sorted(set(owned_tables) - set(tables))
+    if missing:
+        raise ValueError(
+            f'{chain}: database revision {revision} is not in this image and the schema is '
+            f'missing tables this image needs ({", ".join(missing)}); refusing to start'
+        )
+
+
+def _upgrade_owner_chain(
+    root: Path,
+    chain: str,
+    connection: Connection,
+    revision: str | None,
+    owned_tables: Collection[str],
+    tables: Collection[str],
+) -> None:
     """Upgrade one owner chain unless its database revision is ahead of this image."""
     if revision is not None:
         script = ScriptDirectory.from_config(migrations._config(root, chain))
         if _revision_missing_from_image(script, revision):
+            image_head = script.get_current_head()
+            _require_ahead_of_image(chain, revision, image_head, owned_tables, tables)
             _logger.warning(
                 'skipping %s upgrade: database revision %s is not in this image (image head %s)',
                 chain,
                 revision,
-                script.get_current_head(),
+                image_head,
             )
             return
     command.upgrade(migrations._config(root, chain, connection), 'head')
@@ -88,7 +135,9 @@ def _owners(database_url: str, root: Path | None = None) -> None:
             elif any(value is None for value in versions.values()):
                 raise ValueError('partial owner adoption requires review before test reload')
             for chain in migrations._ORDER:
-                _upgrade_owner_chain(root, chain, connection, versions[chain])
+                _upgrade_owner_chain(
+                    root, chain, connection, versions[chain], registry['chains'][chain]['tables'], tables
+                )
     finally:
         engine.dispose()
 
