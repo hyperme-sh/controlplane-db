@@ -143,3 +143,11 @@ locks the billing row first and owns the replay guard and billing completion
 marker. A rollback therefore restores the allocation along with billing state.
 The fallback to a user's `fake-usdc` budget is preserved for old metadata.
 Test-credit removal remains gated on the required Phase B acceptance runs.
+
+`controlplane_db.billing_store` owns billing-record persistence for trusted
+payment-service callers. Transaction-bound value handles hide ORM query
+surfaces and copy JSON on reads/assignment. Explicit tenant reads, locks,
+provider-identity lookups and fixed sweep projections preserve caller session
+transactions and RLS authority; payment rules and provider calls remain in
+payment-service. Handles must stay within the trusted in-process caller and
+its session lifetime; copy explicit response fields at HTTP/event boundaries.
