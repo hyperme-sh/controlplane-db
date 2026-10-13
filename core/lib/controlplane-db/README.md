@@ -126,3 +126,20 @@ not public HTTP or browser interfaces. Do not log or serialize their credential
 results. Webhook-secret enumeration retains the existing privileged verifier
 path and database/RLS visibility; it does not switch roles or grant access.
 Missing credentials return `None`; database failures propagate to the caller.
+
+## Internal agent-budget commands
+
+`controlplane_db.budget_store` owns agent-budget creation, tenant-scoped reads,
+listing and allocation. It returns immutable `AgentBudget` views rather than
+ORM entities. Creation validates any user link against the tenant. Allocation
+holds the budget row lock while checking headroom and writing the increment;
+write results are captured before commit, under the same tenant/RLS context.
+These budgets track application allocations, not on-chain custody.
+
+`burn_legacy_budget_allocation` exists only for retained legacy clawback. It
+locks the selected tenant budget and flushes the decrement in the caller's
+transaction; it never commits, rolls back or closes that session. Payment-service
+locks the billing row first and owns the replay guard and billing completion
+marker. A rollback therefore restores the allocation along with billing state.
+The fallback to a user's `fake-usdc` budget is preserved for old metadata.
+Test-credit removal remains gated on the required Phase B acceptance runs.
