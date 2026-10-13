@@ -110,3 +110,19 @@ bindings are preserved; inactive and deleted memberships still reserve their
 identity within that scope. Run the normal owner-chain migration before deploying
 writers that create these memberships. A downgrade refuses to collapse identities
 that now have multiple memberships; it never deletes or unbinds accounts.
+
+## Internal payment identity and credential reads
+
+`controlplane_db.payment_store` is the platform owner interface for tenant user
+UUIDs, recorded API-key creators, stable mismatch payer subjects and Stripe
+credentials. Payment-service adapters translate the neutral
+`UnstablePayerIdentity` error to the existing HTTP 403. User/key queries always
+filter the requested tenant; the contract never accepts a client-supplied payer
+retarget. Credential reads return an immutable `StripeCredentials` projection
+whose secret is excluded from `repr`, rather than a detached ORM entity.
+
+These are trusted server calls on the caller's database connection credentials,
+not public HTTP or browser interfaces. Do not log or serialize their credential
+results. Webhook-secret enumeration retains the existing privileged verifier
+path and database/RLS visibility; it does not switch roles or grant access.
+Missing credentials return `None`; database failures propagate to the caller.
