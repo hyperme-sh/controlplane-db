@@ -108,7 +108,14 @@ def _upgrade_owner_chain(
     command.upgrade(migrations._config(root, chain, connection), 'head')
 
 
-def _owners(database_url: str, root: Path | None = None) -> None:
+_BOOTSTRAP_ENV = 'CONTROLPLANE_DB_BOOTSTRAP'
+
+
+def _bootstrap_allowed() -> bool:
+    return os.environ.get(_BOOTSTRAP_ENV, '').strip().lower() in {'1', 'true', 'yes'}
+
+
+def _owners(database_url: str, root: Path | None = None, *, allow_empty: bool | None = None) -> None:
     if root is None:
         root = migrations._ROOT
     registry = migrations._registry(root)
@@ -132,6 +139,14 @@ def _owners(database_url: str, root: Path | None = None) -> None:
                         command.stamp(migrations._config(root, chain, connection), entry['baseline'])
                 elif current_tables.intersection(tables):
                     raise ValueError('unversioned existing tables require reviewed baseline adoption')
+                elif not (_bootstrap_allowed() if allow_empty is None else allow_empty):
+                    # An empty database is what a container recreated on an empty
+                    # data directory looks like. Building a fresh schema here would
+                    # hide the data loss, so require an explicit bootstrap.
+                    raise ValueError(
+                        f'database has no schema and no migration history; refusing to create one. '
+                        f'Restore the data directory or a backup, or set {_BOOTSTRAP_ENV}=1 for a new deployment'
+                    )
             elif any(value is None for value in versions.values()):
                 raise ValueError('partial owner adoption requires review before test reload')
             for chain in migrations._ORDER:
