@@ -1,16 +1,63 @@
 """Filter durable subscriptions and historical backfill by envelope source."""
 
 from alembic import op
+from sqlalchemy import text
 
 revision = "events_0054_source_subscriptions"
 down_revision = "events_0053_baseline"
 branch_labels = None
 depends_on = None
 
+_INDEX_SQL = """CREATE INDEX ix_controlplane_events_type_source_id
+ON public.controlplane_events(event_type, (envelope->>'service'), id)"""
+_INDEX_DEFINITION = (
+    "CREATE INDEX ix_controlplane_events_type_source_id ON public.controlplane_events "
+    "USING btree (event_type, ((envelope ->> 'service'::text)), id)"
+)
+_PREPARE_COMMAND = "python -m controlplane_db.migrations prepare-event-source-index"
+
+
+def _index_valid(connection):
+    row = connection.execute(
+        text("""
+        SELECT indisvalid AND indisready AS ready, pg_get_indexdef(indexrelid) AS definition
+        FROM pg_catalog.pg_index
+        WHERE indexrelid = to_regclass('public.ix_controlplane_events_type_source_id')
+          AND indrelid = to_regclass('public.controlplane_events')
+    """)
+    ).first()
+    return row is not None and row.ready and row.definition == _INDEX_DEFINITION
+
+
+def prepare_index(connection):
+    """Explicit owner preflight; never commit an encompassing schema transaction."""
+    if connection.get_execution_options().get("isolation_level") != "AUTOCOMMIT":
+        raise RuntimeError(
+            "Concurrent index preparation requires an AUTOCOMMIT connection"
+        )
+    connection.execute(
+        text("SELECT pg_advisory_lock(hashtext('controlplane-event-source-index'))")
+    )
+    try:
+        connection.exec_driver_sql(
+            _INDEX_SQL.replace(
+                "CREATE INDEX", "CREATE INDEX CONCURRENTLY IF NOT EXISTS", 1
+            )
+        )
+        if not _index_valid(connection):
+            raise RuntimeError(
+                "Event source index is invalid or has an unexpected definition; repair it concurrently before retrying"
+            )
+    finally:
+        connection.execute(
+            text(
+                "SELECT pg_advisory_unlock(hashtext('controlplane-event-source-index'))"
+            )
+        )
+
+
 _SQL = r"""
 ALTER TABLE public.controlplane_event_subscriptions ADD COLUMN source_service text;
-CREATE INDEX ix_controlplane_events_type_source_id
-    ON public.controlplane_events(event_type, (envelope->>'service'), id);
 
 CREATE FUNCTION public.register_controlplane_event_consumer(
     p_group text, p_event_types text[], p_mode text, p_max_attempts integer,
@@ -97,6 +144,10 @@ BEGIN
     SELECT s.source_service INTO v_source
     FROM public.controlplane_event_subscriptions AS s
     WHERE s.consumer_group = p_group LIMIT 1;
+    -- A first N-1 registration must not create a permanently unfiltered relay.
+    IF v_source IS NULL AND p_group = 'payment.deposit.servicebus-outbox.v1' THEN
+        v_source := 'payment-service-deposit-outbox';
+    END IF;
     PERFORM public.register_controlplane_event_consumer(
         p_group, p_event_types, p_mode, p_max_attempts, v_source
     );
@@ -117,6 +168,36 @@ BEGIN
       AND (s.source_service IS NULL OR s.source_service = NEW.envelope->>'service')
     ON CONFLICT (consumer_group, event_id) DO NOTHING;
     RETURN NEW;
+END;
+$$;
+
+-- Cursor resets obey the same subscription predicate as registration/inserts.
+CREATE OR REPLACE FUNCTION public.replay_controlplane_event_deliveries(
+    p_group text, p_after_event_id bigint
+) RETURNS void LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE public.controlplane_event_deliveries AS d
+    SET status = 'pending', attempts = 0, available_at = now(),
+        claimed_by = NULL, claimed_at = NULL, lease_expires_at = NULL,
+        last_error = NULL, delivered_at = NULL, updated_at = now()
+    FROM public.controlplane_events AS e
+    JOIN public.controlplane_event_subscriptions AS s
+      ON s.consumer_group = p_group AND s.event_type = e.event_type
+    WHERE d.consumer_group = p_group AND d.event_id = e.id
+      AND d.event_id > p_after_event_id
+      AND (s.source_service IS NULL OR s.source_service = e.envelope->>'service');
+
+    INSERT INTO public.controlplane_event_deliveries (
+        event_id, consumer_group, status, attempts, max_attempts, available_at
+    )
+    SELECT e.id, s.consumer_group, 'pending', 0, s.max_attempts, now()
+    FROM public.controlplane_events AS e
+    JOIN public.controlplane_event_subscriptions AS s
+      ON s.consumer_group = p_group AND s.event_type = e.event_type
+    WHERE e.id > p_after_event_id
+      AND (s.source_service IS NULL OR s.source_service = e.envelope->>'service')
+    ON CONFLICT (consumer_group, event_id) DO NOTHING;
 END;
 $$;
 
@@ -143,7 +224,23 @@ END $grant$;
 
 
 def upgrade():
-    op.get_bind().exec_driver_sql(_SQL, execution_options={"no_parameters": True})
+    connection = op.get_bind()
+    if not _index_valid(connection):
+        # Only the baseline created in this same transaction is unpublished and
+        # safe for an ordinary build. Existing logs require the concurrent preflight.
+        unpublished = connection.execute(
+            text("""
+            SELECT xmin = pg_current_xact_id()::text::xid
+            FROM pg_catalog.pg_class
+            WHERE oid = 'public.controlplane_events'::regclass
+        """)
+        ).scalar_one()
+        if not unpublished:
+            raise RuntimeError(
+                "Prepare the event source index before upgrading: " + _PREPARE_COMMAND
+            )
+        connection.exec_driver_sql(_INDEX_SQL)
+    connection.exec_driver_sql(_SQL, execution_options={"no_parameters": True})
 
 
 def downgrade():

@@ -167,4 +167,29 @@ subscription to `payment-service-deposit-outbox` without deleting or changing it
 delivery history. Already queued unrelated events can drain through the relay's
 existing no-op source guard; completed deposits keep their delivery IDs and are
 not enqueued again. First-time registration backfills only deposit events.
-Deploy the events owner revision before a runtime that requests a source filter.
+Before upgrading an existing event log, run this separately with the migration
+`DATABASE_URL` configured:
+
+```bash
+python -m controlplane_db.migrations prepare-event-source-index
+python -m controlplane_db.migrations upgrade --chain events
+```
+
+Run the index preflight first, then the events-only upgrade before the normal
+all-owner startup. That keeps the events metadata changes in their own short
+transaction rather than holding their locks through unrelated owner upgrades.
+The owner preflight builds the index with `CREATE INDEX CONCURRENTLY` on an
+AUTOCOMMIT connection. Publishers remain able to insert. It does not stamp or
+upgrade any owner chain, and rerunning it retains a valid matching index. An
+invalid or differently defined index fails validation and requires concurrent
+repair before retry. The separately prepared index remains if a later schema
+upgrade fails; transactional schema/adoption changes still roll back together.
+The owner revision refuses a blocking fallback on an existing table. Fresh
+schemas build the index only while the baseline table is still unpublished in
+the same transaction. Then deploy the events owner revision before a runtime
+that requests a source filter.
+
+Cursor resets use the same source predicate for both existing delivery resets
+and missing-history backfill. The old registration signature assigns the deposit
+source even when the reserved relay group has never registered, so rolling back
+to an N-1 image before first enablement cannot create an unfiltered group.
