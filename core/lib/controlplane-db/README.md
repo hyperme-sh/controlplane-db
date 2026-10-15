@@ -151,3 +151,20 @@ provider-identity lookups and fixed sweep projections preserve caller session
 transactions and RLS authority; payment rules and provider calls remain in
 payment-service. Handles must stay within the trusted in-process caller and
 its session lifetime; copy explicit response fields at HTTP/event boundaries.
+
+### Source-filtered event subscriptions
+
+Events revision `events_0054_source_subscriptions` adds an optional source filter
+to durable event subscriptions and an event-type/source/id index for historical
+backfill. `RoutingControlPlaneConsumer(source_service=...)` applies that filter
+to both backfill and future inserts. Generic unfiltered groups retain their
+existing behavior; changing an explicitly configured filter requires a new group.
+The four-argument SQL registration signature preserves an existing group's
+filter, so older consumers can still register after this expand-only revision.
+
+The deposit relay keeps its existing group ID. The migration narrows that group's
+subscription to `payment-service-deposit-outbox` without deleting or changing its
+delivery history. Already queued unrelated events can drain through the relay's
+existing no-op source guard; completed deposits keep their delivery IDs and are
+not enqueued again. First-time registration backfills only deposit events.
+Deploy the events owner revision before a runtime that requests a source filter.
