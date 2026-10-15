@@ -151,9 +151,21 @@ def upgrade(database_url: str, chains: Sequence[str] | None = None, registry_pat
         engine.dispose()
 
 
+def prepare_event_source_index(database_url: str) -> None:
+    """Prepare the events-owned source index concurrently, without schema adoption."""
+    engine = _engine(database_url)
+    try:
+        script = ScriptDirectory.from_config(_config(_ROOT, 'events'))
+        revision = script.get_revision('events_0054_source_subscriptions')
+        with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as connection:
+            revision.module.prepare_index(connection)
+    finally:
+        engine.dispose()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('heads', 'current', 'upgrade', 'stamp'))
+    parser.add_argument('action', choices=('heads', 'current', 'upgrade', 'stamp', 'prepare-event-source-index'))
     parser.add_argument('--chain', action='append')
     parser.add_argument('--baseline-only', action='store_true')
     args = parser.parse_args()
@@ -165,7 +177,9 @@ def main() -> int:
     url = os.environ.get('DATABASE_URL')
     if not url:
         parser.error('DATABASE_URL is required')
-    if args.action == 'current':
+    if args.action == 'prepare-event-source-index':
+        prepare_event_source_index(url)
+    elif args.action == 'current':
         print(json.dumps(current_heads(url), sort_keys=True))
     elif args.action == 'stamp':
         stamp_baselines(url)

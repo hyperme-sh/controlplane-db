@@ -151,3 +151,46 @@ provider-identity lookups and fixed sweep projections preserve caller session
 transactions and RLS authority; payment rules and provider calls remain in
 payment-service. Handles must stay within the trusted in-process caller and
 its session lifetime; copy explicit response fields at HTTP/event boundaries.
+
+### Source-filtered event subscriptions
+
+Events revision `events_0054_source_subscriptions` adds an optional source filter
+to durable event subscriptions and an event-type/source/id index for historical
+backfill. `RoutingControlPlaneConsumer(source_service=...)` applies that filter
+to both backfill and future inserts. Generic unfiltered groups retain their
+existing behavior; changing an explicitly configured filter requires a new group.
+The four-argument SQL registration signature preserves an existing group's
+filter, so older consumers can still register after this expand-only revision.
+
+The deposit relay keeps its existing group ID. The migration narrows that group's
+subscription to `payment-service-deposit-outbox` without deleting or changing its
+delivery history. Already queued unrelated events can drain through the relay's
+existing no-op source guard; completed deposits keep their delivery IDs and are
+not enqueued again. First-time registration backfills only deposit events.
+Before upgrading an existing event log, run this separately with the migration
+`DATABASE_URL` configured:
+
+```bash
+python -m controlplane_db.migrations prepare-event-source-index
+python -m controlplane_db.migrations upgrade --chain events
+```
+
+Run the index preflight first, then the events-only upgrade before the normal
+all-owner startup. That keeps the events metadata changes in their own short
+transaction rather than holding their locks through unrelated owner upgrades.
+The CLI delegates to the public `controlplane_db.migrations.prepare_event_source_index`
+owner API, also used by baseline-adoption fixtures. The preflight builds the index with `CREATE INDEX CONCURRENTLY` on an
+AUTOCOMMIT connection. Publishers remain able to insert. It does not stamp or
+upgrade any owner chain, and rerunning it retains a valid matching index. An
+invalid or differently defined index fails validation and requires concurrent
+repair before retry. The separately prepared index remains if a later schema
+upgrade fails; transactional schema/adoption changes still roll back together.
+The owner revision refuses a blocking fallback on an existing table. Fresh
+schemas build the index only while the baseline table is still unpublished in
+the same transaction. Then deploy the events owner revision before a runtime
+that requests a source filter.
+
+Cursor resets use the same source predicate for both existing delivery resets
+and missing-history backfill. The old registration signature assigns the deposit
+source even when the reserved relay group has never registered, so rolling back
+to an N-1 image before first enablement cannot create an unfiltered group.
