@@ -151,7 +151,8 @@ def upgrade(database_url: str, chains: Sequence[str] | None = None, registry_pat
         engine.dispose()
 
 
-def _prepare_event_source_index(database_url: str) -> None:
+def prepare_event_source_index(database_url: str) -> None:
+    """Prepare the events-owned source index concurrently, without schema adoption."""
     engine = _engine(database_url)
     try:
         script = ScriptDirectory.from_config(_config(_ROOT, 'events'))
@@ -177,7 +178,7 @@ def main() -> int:
     if not url:
         parser.error('DATABASE_URL is required')
     if args.action == 'prepare-event-source-index':
-        _prepare_event_source_index(url)
+        prepare_event_source_index(url)
     elif args.action == 'current':
         print(json.dumps(current_heads(url), sort_keys=True))
     elif args.action == 'stamp':

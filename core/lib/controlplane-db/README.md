@@ -178,7 +178,8 @@ python -m controlplane_db.migrations upgrade --chain events
 Run the index preflight first, then the events-only upgrade before the normal
 all-owner startup. That keeps the events metadata changes in their own short
 transaction rather than holding their locks through unrelated owner upgrades.
-The owner preflight builds the index with `CREATE INDEX CONCURRENTLY` on an
+The CLI delegates to the public `controlplane_db.migrations.prepare_event_source_index`
+owner API, also used by baseline-adoption fixtures. The preflight builds the index with `CREATE INDEX CONCURRENTLY` on an
 AUTOCOMMIT connection. Publishers remain able to insert. It does not stamp or
 upgrade any owner chain, and rerunning it retains a valid matching index. An
 invalid or differently defined index fails validation and requires concurrent
