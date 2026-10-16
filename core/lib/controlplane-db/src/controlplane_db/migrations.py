@@ -14,6 +14,7 @@ from collections.abc import Sequence
 from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
+from alembic.util.exc import CommandError
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Connection
 
@@ -151,14 +152,61 @@ def upgrade(database_url: str, chains: Sequence[str] | None = None, registry_pat
         engine.dispose()
 
 
+_EVENT_SOURCE_INDEX_REVISION = 'events_0054_source_subscriptions'
+_EVENT_SOURCE_INDEX_BEFORE = (None, 'events_0053_baseline')
+
+
 def prepare_event_source_index(database_url: str) -> None:
     """Prepare the events-owned source index concurrently, without schema adoption."""
     engine = _engine(database_url)
     try:
         script = ScriptDirectory.from_config(_config(_ROOT, 'events'))
-        revision = script.get_revision('events_0054_source_subscriptions')
+        revision = script.get_revision(_EVENT_SOURCE_INDEX_REVISION)
         with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as connection:
             revision.module.prepare_index(connection)
+    finally:
+        engine.dispose()
+
+
+def _prepare_pending_event_source_index(database_url: str, registry_path: Path | None = None) -> bool:
+    """Run the concurrent index preflight when the next events upgrade needs it.
+
+    Called by deployment startup before the owner schema transaction, so an
+    unattended deploy applies ``events_0054`` without a manual step. Returns
+    True when the preflight ran. It is skipped when there is no published event
+    log yet (a fresh schema builds the index inside its creation transaction),
+    when the events chain is already at or past ``events_0054``, and when this
+    image does not contain that revision. It runs on its own AUTOCOMMIT
+    connection with ``CREATE INDEX CONCURRENTLY``, so publishers keep inserting
+    while it builds, and it never stamps or upgrades a chain.
+    """
+    root = registry_path or _ROOT
+    try:
+        revision = ScriptDirectory.from_config(_config(root, 'events')).get_revision(_EVENT_SOURCE_INDEX_REVISION)
+    except CommandError:  # this image does not contain the revision
+        revision = None
+    if revision is None:
+        return False
+    engine = _engine(database_url)
+    try:
+        with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as connection:
+            if not inspect(connection).has_table('controlplane_events', schema='public'):
+                return False
+            versions = _versions(connection, root)
+            if None in versions.values() and any(value is not None for value in versions.values()):
+                return False  # partial adoption; startup refuses it
+            events = versions['events']
+            if events not in _EVENT_SOURCE_INDEX_BEFORE:
+                return False
+            # Leave states that startup refuses untouched: only an owner chain
+            # at its baseline, or a mixed chain exactly at the adoption source.
+            legacy = _legacy_revision(connection)
+            if legacy is not None and legacy != _registry(root)['source_revision']:
+                return False
+            if events is None and legacy is None:
+                return False
+            revision.module.prepare_index(connection, repair_invalid=True)
+            return True
     finally:
         engine.dispose()
 

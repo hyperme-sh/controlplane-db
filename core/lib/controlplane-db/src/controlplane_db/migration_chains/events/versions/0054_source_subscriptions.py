@@ -14,6 +14,8 @@ _INDEX_DEFINITION = (
     "CREATE INDEX ix_controlplane_events_type_source_id ON public.controlplane_events "
     "USING btree (event_type, ((envelope ->> 'service'::text)), id)"
 )
+# Deployment startup (owners mode) runs this preflight automatically before the
+# schema transaction. Direct `upgrade` callers must run it themselves.
 _PREPARE_COMMAND = "python -m controlplane_db.migrations prepare-event-source-index"
 
 
@@ -29,8 +31,26 @@ def _index_valid(connection):
     return row is not None and row.ready and row.definition == _INDEX_DEFINITION
 
 
-def prepare_index(connection):
-    """Explicit owner preflight; never commit an encompassing schema transaction."""
+def _index_invalid(connection):
+    """True when an index of this name exists but is not usable (failed build)."""
+    row = connection.execute(
+        text("""
+        SELECT NOT (indisvalid AND indisready)
+        FROM pg_catalog.pg_index
+        WHERE indexrelid = to_regclass('public.ix_controlplane_events_type_source_id')
+    """)
+    ).first()
+    return row is not None and bool(row[0])
+
+
+def prepare_index(connection, *, repair_invalid=False):
+    """Build the source index concurrently outside any schema transaction.
+
+    Idempotent: a valid matching index is kept. With ``repair_invalid`` an
+    index left invalid by an interrupted concurrent build is dropped
+    concurrently and rebuilt; callers pass it only before this revision is
+    applied, when nothing depends on the index yet.
+    """
     if connection.get_execution_options().get("isolation_level") != "AUTOCOMMIT":
         raise RuntimeError(
             "Concurrent index preparation requires an AUTOCOMMIT connection"
@@ -39,6 +59,10 @@ def prepare_index(connection):
         text("SELECT pg_advisory_lock(hashtext('controlplane-event-source-index'))")
     )
     try:
+        if repair_invalid and _index_invalid(connection):
+            connection.exec_driver_sql(
+                "DROP INDEX CONCURRENTLY IF EXISTS public.ix_controlplane_events_type_source_id"
+            )
         connection.exec_driver_sql(
             _INDEX_SQL.replace(
                 "CREATE INDEX", "CREATE INDEX CONCURRENTLY IF NOT EXISTS", 1

@@ -167,8 +167,17 @@ subscription to `payment-service-deposit-outbox` without deleting or changing it
 delivery history. Already queued unrelated events can drain through the relay's
 existing no-op source guard; completed deposits keep their delivery IDs and are
 not enqueued again. First-time registration backfills only deposit events.
-Before upgrading an existing event log, run this separately with the migration
-`DATABASE_URL` configured:
+Deployment startup (`controlplane-migrate`, `CONTROLPLANE_MIGRATION_MODE=owners`)
+runs the concurrent index preflight automatically before its owner schema
+transaction, so test and production deploys need no manual step. It runs only
+when the event log already exists and the events chain is still before
+`events_0054`; it is a no-op on fresh databases (the index is built with the new
+table) and on already prepared or upgraded ones, and it drops and rebuilds,
+concurrently, an index left invalid by an interrupted build. It skips database
+states that startup refuses anyway.
+
+When upgrading an existing event log by hand instead, run this separately with
+the migration `DATABASE_URL` configured:
 
 ```bash
 python -m controlplane_db.migrations prepare-event-source-index
