@@ -121,7 +121,7 @@ def _owners(database_url: str, root: Path | None = None, *, allow_empty: bool | 
     registry = migrations._registry(root)
     # Build the events source index concurrently before the schema
     # transaction. events_0054 refuses a blocking build on a published log.
-    if migrations.prepare_pending_event_source_index(database_url, root):
+    if migrations._prepare_pending_event_source_index(database_url, root):
         _logger.info('prepared the event source index concurrently before owner upgrades')
     engine = migrations._engine(database_url)
     try:

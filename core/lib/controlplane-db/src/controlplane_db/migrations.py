@@ -152,7 +152,7 @@ def upgrade(database_url: str, chains: Sequence[str] | None = None, registry_pat
         engine.dispose()
 
 
-EVENT_SOURCE_INDEX_REVISION = 'events_0054_source_subscriptions'
+_EVENT_SOURCE_INDEX_REVISION = 'events_0054_source_subscriptions'
 _EVENT_SOURCE_INDEX_BEFORE = (None, 'events_0053_baseline')
 
 
@@ -161,14 +161,14 @@ def prepare_event_source_index(database_url: str) -> None:
     engine = _engine(database_url)
     try:
         script = ScriptDirectory.from_config(_config(_ROOT, 'events'))
-        revision = script.get_revision(EVENT_SOURCE_INDEX_REVISION)
+        revision = script.get_revision(_EVENT_SOURCE_INDEX_REVISION)
         with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as connection:
             revision.module.prepare_index(connection)
     finally:
         engine.dispose()
 
 
-def prepare_pending_event_source_index(database_url: str, registry_path: Path | None = None) -> bool:
+def _prepare_pending_event_source_index(database_url: str, registry_path: Path | None = None) -> bool:
     """Run the concurrent index preflight when the next events upgrade needs it.
 
     Called by deployment startup before the owner schema transaction, so an
@@ -182,7 +182,7 @@ def prepare_pending_event_source_index(database_url: str, registry_path: Path | 
     """
     root = registry_path or _ROOT
     try:
-        revision = ScriptDirectory.from_config(_config(root, 'events')).get_revision(EVENT_SOURCE_INDEX_REVISION)
+        revision = ScriptDirectory.from_config(_config(root, 'events')).get_revision(_EVENT_SOURCE_INDEX_REVISION)
     except CommandError:  # this image does not contain the revision
         revision = None
     if revision is None:
