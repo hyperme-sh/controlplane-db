@@ -179,7 +179,8 @@
         "usdc_payment_intents",
         "payer_mismatch_accounts",
         "billing_tax_orders",
-        "billing_tax_calculations"
+        "billing_tax_calculations",
+        "connect_control_proofs"
       ],
       "baseline_sha256": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8",
       "baseline_tables": []
