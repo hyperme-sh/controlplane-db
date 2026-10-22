@@ -1,5 +1,7 @@
 """Explicit legacy policy and immutable, tenant-scoped Account Session journal."""
 
+import uuid
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -8,6 +10,117 @@ revision = "payment_service_0069_access"
 down_revision = "payment_service_0068_adoption"
 branch_labels = None
 depends_on = None
+
+
+def legacy_operations(billing_id, host, account, transfer, bank):
+    """Freeze pre-upgrade uncertainty without rewriting any financial journal."""
+    operations = {}
+
+    def mapping(value):
+        return value if isinstance(value, dict) else {}
+
+    def matches(scope):
+        return scope.get("host_org_id") == str(host) or (
+            account is not None and scope.get("account_id") == account
+        )
+
+    transfer, bank = mapping(transfer), mapping(bank)
+    if transfer and matches(transfer):
+        # A prepared/cancelled/skipped intent proves no POST; a native bound
+        # transfer proves creation resolved. Everything else stays conservative.
+        native_id = transfer.get("transfer_id")
+        resolved = (
+            isinstance(native_id, str)
+            and native_id.startswith("tr_")
+            and len(native_id) > 3
+        )
+        if not resolved and transfer.get("status") not in {
+            "prepared",
+            "cancelled",
+            "skipped",
+            "waiting_recipient",
+        }:
+            operations[f"transfer:{billing_id}"] = True
+        reversal = mapping(transfer.get("reversal"))
+        if transfer.get("reversal") is not None:
+            target = reversal.get("target_cents")
+            key = (
+                f"reversal:{billing_id}:{target}"
+                if type(target) is int and target > 0
+                else f"legacy-reversal:{billing_id}"
+            )
+            operations[key] = True
+    plan = mapping(bank.get("plan"))
+    native_id = bank.get("payout_id")
+    resolved = (
+        isinstance(native_id, str)
+        and native_id.startswith("po_")
+        and len(native_id) > 3
+    )
+    if bank and matches(plan) and not resolved:
+        attempts = bank.get("attempts")
+        unsent = isinstance(attempts, list) and (
+            (
+                bool(attempts)
+                and all(
+                    isinstance(attempt, dict) and attempt.get("outcome") == "not_sent"
+                    for attempt in attempts
+                )
+            )
+            or (
+                not attempts
+                and bank.get("status") in {"prepared", "waiting_readiness", "skipped"}
+            )
+        )
+        if not unsent and bank.get("status") != "skipped":
+            try:
+                key = "bank:" + str(uuid.UUID(str(plan.get("plan_id"))))
+            except (ValueError, TypeError, AttributeError):
+                key = f"legacy-bank:{billing_id}"
+            operations[key] = True
+    return operations
+
+
+def seed_legacy_operations():
+    # A migration role unable to see every tenant must fail rather than silently
+    # create apparently clear fences. This is a read-only billing-owner exception.
+    op.execute("SET LOCAL row_security = off")
+    connection = op.get_bind()
+    rows = connection.execute(
+        sa.text("""
+        SELECT r.tenant_id, r.host_org_id, r.stripe_account_id, b.id AS billing_id,
+               b.metadata->'stripe_connect_transfer' AS transfer,
+               b.metadata->'stripe_bank_payout' AS bank
+        FROM connect_recipient_accounts r JOIN billing_records b
+          ON b.tenant_id = r.tenant_id
+        WHERE b.metadata->'stripe_connect_transfer'->>'host_org_id' = r.host_org_id::text
+           OR b.metadata->'stripe_connect_transfer'->>'account_id' = r.stripe_account_id
+           OR b.metadata->'stripe_bank_payout'->'plan'->>'host_org_id' = r.host_org_id::text
+           OR b.metadata->'stripe_bank_payout'->'plan'->>'account_id' = r.stripe_account_id
+    """)
+    )
+    update = sa.text("""UPDATE connect_access_states
+        SET money_operations = money_operations || :operations
+        WHERE tenant_id = :tenant AND host_org_id = :host""").bindparams(
+        sa.bindparam("operations", type_=JSONB)
+    )
+    for row in rows.mappings():
+        operations = legacy_operations(
+            row["billing_id"],
+            row["host_org_id"],
+            row["stripe_account_id"],
+            row["transfer"],
+            row["bank"],
+        )
+        if operations:
+            connection.execute(
+                update,
+                {
+                    "operations": operations,
+                    "tenant": row["tenant_id"],
+                    "host": row["host_org_id"],
+                },
+            )
 
 
 def upgrade():
@@ -44,6 +157,7 @@ def upgrade():
     op.execute(
         "INSERT INTO connect_access_states(tenant_id,host_org_id,policy) SELECT tenant_id,host_org_id,'express-probe/v1' FROM connect_recipient_accounts"
     )
+    seed_legacy_operations()
     op.execute("""
     CREATE FUNCTION public.connect_access_legacy() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ BEGIN
