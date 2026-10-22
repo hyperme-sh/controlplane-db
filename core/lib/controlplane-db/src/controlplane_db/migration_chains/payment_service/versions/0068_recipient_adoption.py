@@ -10,6 +10,19 @@ branch_labels = None
 depends_on = None
 
 ORIGINAL = """CREATE OR REPLACE FUNCTION public.connect_recipient_progress_only() RETURNS trigger
+LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+    BEGIN
+      IF (to_jsonb(NEW) - 'stripe_account_id' - 'creation_status' - 'capability_status' - 'capability_observed_at') IS DISTINCT FROM
+         (to_jsonb(OLD) - 'stripe_account_id' - 'creation_status' - 'capability_status' - 'capability_observed_at') OR
+         (OLD.stripe_account_id IS NOT NULL AND NEW.stripe_account_id IS DISTINCT FROM (OLD.stripe_account_id)) OR
+         (OLD.creation_status = 'reconciliation_required' AND NEW.creation_status = 'pending_creation') OR
+         (OLD.capability_observed_at IS NOT NULL AND
+           (NEW.capability_observed_at IS NULL OR NEW.capability_observed_at < OLD.capability_observed_at OR
+            (NEW.capability_status IS DISTINCT FROM (OLD.capability_status) AND NEW.capability_observed_at <= OLD.capability_observed_at))) THEN
+        RAISE EXCEPTION 'Connect recipient history cannot be rewritten' USING ERRCODE = '23514';
+      END IF;
+      RETURN NEW;
+    END $$;"""
 PROGRESS = """CREATE OR REPLACE FUNCTION public.connect_recipient_progress_only() RETURNS trigger
 LANGUAGE plpgsql SET search_path = pg_catalog AS $$
     BEGIN
@@ -24,19 +37,7 @@ LANGUAGE plpgsql SET search_path = pg_catalog AS $$
         RAISE EXCEPTION 'Connect recipient history cannot be rewritten' USING ERRCODE = '23514';
       END IF;
       RETURN NEW;
-    END $$;"""    BEGIN
-      IF (to_jsonb(NEW) - 'stripe_account_id' - 'creation_status' - 'capability_status' - 'capability_observed_at') IS DISTINCT FROM
-         (to_jsonb(OLD) - 'stripe_account_id' - 'creation_status' - 'capability_status' - 'capability_observed_at') OR
-         (OLD.stripe_account_id IS NOT NULL AND NEW.stripe_account_id IS DISTINCT FROM (OLD.stripe_account_id)) OR
-         (OLD.creation_status = 'reconciliation_required' AND NEW.creation_status = 'pending_creation') OR
-         (OLD.capability_observed_at IS NOT NULL AND
-           (NEW.capability_observed_at IS NULL OR NEW.capability_observed_at < OLD.capability_observed_at OR
-            (NEW.capability_status IS DISTINCT FROM (OLD.capability_status) AND NEW.capability_observed_at <= OLD.capability_observed_at))) THEN
-        RAISE EXCEPTION 'Connect recipient history cannot be rewritten' USING ERRCODE = '23514';
-      END IF;
-      RETURN NEW;
     END $$;"""
-PROGRESS = "CREATE OR REPLACE FUNCTION public.connect_recipient_progress_only() RETURNS trigger\nLANGUAGE plpgsql SET search_path = pg_catalog AS $$\n    BEGIN\n      IF (to_jsonb(NEW) - 'stripe_account_id' - 'creation_status' - 'capability_status' - 'capability_observed_at' - 'adoption_result') IS DISTINCT FROM\n         (to_jsonb(OLD) - 'stripe_account_id' - 'creation_status' - 'capability_status' - 'capability_observed_at' - 'adoption_result') OR\n         (OLD.adoption_result IS NOT NULL AND NEW.adoption_result IS DISTINCT FROM OLD.adoption_result) OR\n         (OLD.stripe_account_id IS NOT NULL AND NEW.stripe_account_id IS DISTINCT FROM (OLD.stripe_account_id)) OR\n         (OLD.creation_status = 'reconciliation_required' AND NEW.creation_status = 'pending_creation') OR\n         (OLD.capability_observed_at IS NOT NULL AND\n           (NEW.capability_observed_at IS NULL OR NEW.capability_observed_at < OLD.capability_observed_at OR\n            (NEW.capability_status IS DISTINCT FROM (OLD.capability_status) AND NEW.capability_observed_at <= OLD.capability_observed_at))) THEN\n        RAISE EXCEPTION 'Connect recipient history cannot be rewritten' USING ERRCODE = '23514';\n      END IF;\n      RETURN NEW;\n    END $$;"
 
 
 def upgrade():
