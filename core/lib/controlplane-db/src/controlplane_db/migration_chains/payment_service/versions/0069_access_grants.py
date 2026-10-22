@@ -171,11 +171,8 @@ def downgrade():
     op.execute(
         "DROP TRIGGER connect_access_legacy ON public.connect_recipient_accounts"
     )
-    for table in (
-        "connect_access_results",
-        "connect_access_grants",
-        "connect_access_states",
-    ):
-        op.drop_table(table)
+    op.drop_table("connect_access_results")
+    op.drop_table("connect_access_grants")
+    op.drop_table("connect_access_states")
     op.execute("DROP FUNCTION public.connect_access_legacy()")
     op.execute("DROP FUNCTION public.connect_access_epoch()")
