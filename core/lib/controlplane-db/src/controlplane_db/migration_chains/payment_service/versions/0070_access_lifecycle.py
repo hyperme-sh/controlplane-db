@@ -23,6 +23,12 @@ def upgrade():
     op.execute(
         "UPDATE connect_access_states SET enabled=false, epoch=epoch+1 WHERE policy='embedded-api/v1' AND enabled"
     )
+    op.create_index(
+        "ix_connect_access_enabled_lifecycle",
+        "connect_access_states",
+        ["tenant_id", "host_org_id"],
+        postgresql_where=sa.text("policy = 'embedded-api/v1' AND enabled IS TRUE"),
+    )
     op.create_check_constraint(
         "ck_access_lifecycle",
         "connect_access_states",
@@ -37,5 +43,8 @@ def downgrade():
         RAISE EXCEPTION 'Cannot remove access lifecycle history' USING ERRCODE = '23514';
       END IF;
     END $$""")
+    op.drop_index(
+        "ix_connect_access_enabled_lifecycle", table_name="connect_access_states"
+    )
     op.drop_constraint("ck_access_lifecycle", "connect_access_states")
     op.drop_column("connect_access_states", "lifecycle")
