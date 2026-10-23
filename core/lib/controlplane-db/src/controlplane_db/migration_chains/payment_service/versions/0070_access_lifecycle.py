@@ -68,6 +68,11 @@ def upgrade():
 
 def downgrade():
     op.execute("SET LOCAL row_security = off")
+    # Hold both tables before the history check. A concurrent lifecycle write
+    # must commit or abort first, so the guard and the drop see the same rows.
+    op.execute(
+        "LOCK TABLE public.connect_access_states, public.connect_ended_sessions IN ACCESS EXCLUSIVE MODE"
+    )
     op.execute("""DO $$ BEGIN
       IF EXISTS (SELECT 1 FROM connect_access_states WHERE lifecycle <> '{}'::jsonb) OR EXISTS (SELECT 1 FROM connect_ended_sessions) THEN
         RAISE EXCEPTION 'Cannot remove access lifecycle history' USING ERRCODE = '23514';
