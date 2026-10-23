@@ -17,6 +17,12 @@ def upgrade():
             "lifecycle", JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")
         ),
     )
+    # Existing native grants keep their fences; no new owner is inferred from
+    # an ownerless pre-upgrade enabled state. Require explicit reactivation.
+    op.execute("SET LOCAL row_security = off")
+    op.execute(
+        "UPDATE connect_access_states SET enabled=false, epoch=epoch+1 WHERE policy='embedded-api/v1' AND enabled"
+    )
     op.create_check_constraint(
         "ck_access_lifecycle",
         "connect_access_states",
@@ -25,6 +31,7 @@ def upgrade():
 
 
 def downgrade():
+    op.execute("SET LOCAL row_security = off")
     op.execute("""DO $$ BEGIN
       IF EXISTS (SELECT 1 FROM connect_access_states WHERE lifecycle <> '{}'::jsonb) THEN
         RAISE EXCEPTION 'Cannot remove access lifecycle history' USING ERRCODE = '23514';
