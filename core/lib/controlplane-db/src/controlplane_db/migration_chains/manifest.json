@@ -183,7 +183,8 @@
         "connect_control_proofs",
         "connect_access_states",
         "connect_access_grants",
-        "connect_access_results"
+        "connect_access_results",
+        "connect_ended_sessions"
       ],
       "baseline_sha256": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8",
       "baseline_tables": []
