@@ -378,6 +378,20 @@ class SociaclShareLink(Base):
     )
 
 
+class SociaclWitnessPolicy(Base):
+    """One deployment-wide trusted policy; history includes removed key tombstones."""
+
+    __tablename__ = "sociacl_witness_policy"
+    __table_args__ = (
+        CheckConstraint("id = 1", name="ck_sociacl_policy_singleton"),
+        CheckConstraint("revision BETWEEN 0 AND 9007199254740991", name="ck_sociacl_policy_revision"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    revision: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    jwks: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{\"keys\":[]}'::jsonb"))
+    history: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+
+
 class SociaclKeyringState(Base):
     """Global per-principal ciphertext state; accessed only by the trusted adapter."""
 
