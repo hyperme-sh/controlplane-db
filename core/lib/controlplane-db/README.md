@@ -203,3 +203,10 @@ Cursor resets use the same source predicate for both existing delivery resets
 and missing-history backfill. The old registration signature assigns the deposit
 source even when the reserved relay group has never registered, so rolling back
 to an N-1 image before first enablement cannot create an unfiltered group.
+
+Platform revision `platform_0055_sociacl_keyring` adds globally principal-scoped
+SociACL ciphertext state with one shared floor and separate recovery/wrap
+generations. It does not grant tenant or HTTP access. The ACL service's storage
+primitive serializes updates with a PostgreSQL row lock; the authenticated
+adapter is still pending. See [storage contract](../../../docs/sociacl-durable-state.md).
+Downgrade refuses any remaining state row, including an empty-ciphertext tombstone.
