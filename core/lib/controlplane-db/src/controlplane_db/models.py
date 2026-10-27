@@ -16,6 +16,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -375,6 +376,25 @@ class SociaclShareLink(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class SociaclKeyringState(Base):
+    """Global per-principal ciphertext state; accessed only by the trusted adapter."""
+
+    __tablename__ = "sociacl_keyring_state"
+    __table_args__ = (
+        CheckConstraint("principal ~ '^[A-Za-z0-9_-]{43}[.][A-Za-z0-9_-]{43}$'", name="ck_sociacl_keyring_principal"),
+        CheckConstraint("head_floor BETWEEN 0 AND 9007199254740991", name="ck_sociacl_keyring_floor"),
+        CheckConstraint("recovery_generation BETWEEN 0 AND 9007199254740991", name="ck_sociacl_recovery_generation"),
+        CheckConstraint("wrap_generation BETWEEN 0 AND 9007199254740991", name="ck_sociacl_wrap_generation"),
+    )
+
+    principal: Mapped[str] = mapped_column(String(87), primary_key=True)
+    head_floor: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    recovery_generation: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    wrap_generation: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    recovery: Mapped[bytes] = mapped_column(LargeBinary, nullable=False, server_default=text("''::bytea"))
+    wraps: Mapped[bytes] = mapped_column(LargeBinary, nullable=False, server_default=text("''::bytea"))
 
 
 class SociaclRecoverySession(Base):
