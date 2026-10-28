@@ -30,6 +30,7 @@
         "sociacl_keyring_state",
         "sociacl_recovery_sessions",
         "sociacl_share_links",
+        "sociacl_witness_policy",
         "sso_settings",
         "storage_settings",
         "stripe_settings",

@@ -210,3 +210,9 @@ generations. It does not grant tenant or HTTP access. The ACL service's storage
 primitive serializes updates with a PostgreSQL row lock; the authenticated
 adapter is still pending. See [storage contract](../../../docs/sociacl-durable-state.md).
 Downgrade refuses any remaining state row, including an empty-ciphertext tombstone.
+
+The platform `0056` owner migration adds deployment-wide SociACL witness policy
+revision and lifecycle history. Updates and signing serialize through the trusted
+ACL adapter; removed-key identities are retained permanently. No tenant/runtime
+role grants are added, and downgrade refuses populated policy state. See
+[witness policy lifecycle](../../../docs/sociacl-witness-signing.md#durable-server-policy-lifecycle).
