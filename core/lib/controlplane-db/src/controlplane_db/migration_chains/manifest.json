@@ -184,6 +184,7 @@
         "aiuditor_catalog",
         "aiuditor_connections",
         "aiuditor_contracts",
+        "aiuditor_crawl_state",
         "aiuditor_envelopes",
         "aiuditor_machine_identities",
         "aiuditor_policies",
