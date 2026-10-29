@@ -9,6 +9,7 @@ depends_on = None
 
 
 def upgrade():
+    op.add_column("hypermesh_jobs", sa.Column("result_effects_completed_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("hypermesh_devices", sa.Column("environment_changed_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("hypermesh_devices", sa.Column("observed_environment_hash", sa.String(71), nullable=True))
     op.add_column("hypermesh_devices", sa.Column("certified_environment_hash", sa.String(71), nullable=True))
