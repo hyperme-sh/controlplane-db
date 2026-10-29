@@ -287,6 +287,7 @@ def refund_scan_page(session, *, after: uuid.UUID | None = None) -> list[tuple]:
         _BillingRecord.extra_metadata["payment_rail"].astext
         == "stripe_stablecoin",
         or_(
+            _BillingRecord.extra_metadata["stripe_late_refund"]["operation_id"].astext.is_not(None),
             _BillingRecord.extra_metadata["settle_response"].astext.is_(
                 None
             ),
@@ -295,6 +296,7 @@ def refund_scan_page(session, *, after: uuid.UUID | None = None) -> list[tuple]:
             ].astext.is_not(None),
         ),
         or_(
+            _BillingRecord.extra_metadata["stripe_late_refund"]["operation_id"].astext.is_not(None),
             _BillingRecord.status == "refund_required",
             _BillingRecord.extra_metadata["pending_refund"].astext.is_not(
                 None
