@@ -2,8 +2,8 @@
 import sqlalchemy as sa
 from alembic import op
 
-revision = "hypermesh_0067_environment_cert"
-down_revision = "hypermesh_0066_receipt_versions"
+revision = "hypermesh_0068_environment_cert"
+down_revision = "hypermesh_0067_processing_policy"
 branch_labels = None
 depends_on = None
 
