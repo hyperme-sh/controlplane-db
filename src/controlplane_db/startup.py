@@ -169,7 +169,7 @@ def main() -> int:
             raise ValueError('DATABASE_URL is required for owner adoption')
         _owners(url)
     elif mode == 'legacy':
-        ini = Path(__file__).resolve().parents[2] / 'alembic.ini'
+        ini = Path(__file__).with_name('alembic.ini')
         command.upgrade(Config(str(ini)), 'head')
     else:
         raise ValueError('CONTROLPLANE_MIGRATION_MODE must be legacy or owners')

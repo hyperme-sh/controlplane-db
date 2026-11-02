@@ -18,4 +18,10 @@ dependencies = [
 packages = ["src/controlplane_db"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/controlplane_db"]
+include = ["src", "tests", "scripts", "README.md", "AGENTS.md", "alembic.ini", "pyproject.toml", "uv.lock"]
+
+[dependency-groups]
+dev = ["pytest>=8.4.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
