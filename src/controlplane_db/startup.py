@@ -20,7 +20,7 @@ from alembic.script import ScriptDirectory
 from alembic.script.revision import ResolutionError
 from alembic.util.exc import CommandError
 from sqlalchemy import inspect, text
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import Connection, make_url
 
 from controlplane_db import migrations
 
@@ -171,6 +171,16 @@ def main() -> int:
     elif mode == 'legacy':
         ini = Path(__file__).with_name('alembic.ini')
         command.upgrade(Config(str(ini)), 'head')
+        # The mixed history is frozen; apply the forward-only security repair
+        # after it, without changing historical revisions or baseline hashes.
+        from controlplane_db._share_lookup_hardening import apply
+        url = os.environ.get("DATABASE_URL", "postgresql+psycopg://controlplane:controlplane123@localhost:5432/controlplane")
+        engine = migrations._engine(make_url(url).set(drivername="postgresql+psycopg").render_as_string(hide_password=False))
+        try:
+            with engine.begin() as connection:
+                apply(connection)
+        finally:
+            engine.dispose()
     else:
         raise ValueError('CONTROLPLANE_MIGRATION_MODE must be legacy or owners')
     return 0

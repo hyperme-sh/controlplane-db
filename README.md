@@ -44,6 +44,27 @@ checks from source, a fresh wheel outside the checkout and a wheel rebuilt from
 the source archive. Every wheel payload file must match the source tree. Hosted
 CI uses read-only contents and no database or deployment credentials.
 
-These checks resolve migration graphs and inspect resources without applying SQL.
+Most checks resolve migration graphs without applying SQL. Security regression tests
+use a disposable PostgreSQL 17 service in CI; locally, set `TEST_DATABASE_URL` only
+to a disposable database with an administrative test role. They roll back test
+objects and demonstrate the historical temporary-view attack before verifying the
+repair and application/untrusted-role permissions. Without that variable these
+two integration cases are skipped.
 PostgreSQL upgrade/adoption, schema equivalence, RLS and consumer integration are
 separate acceptance requirements. Package version remains 0.1.0.
+
+## Share lookup security repair
+
+Platform revision `platform_0057_share_lookup` replaces the share-token lookup
+with a schema-qualified table and operator, trusted search path ending in
+`pg_temp`, and no PUBLIC execution. Existing `controlplane` and `controlplane_app`
+roles receive execution; no roles are created. Provision application roles before
+applying this revision, or have the database owner grant execution explicitly.
+
+The frozen mixed chain and owner baseline files remain unchanged. Legacy-mode
+`controlplane_db.startup` applies the same idempotent repair after its frozen
+upgrade. Direct `alembic upgrade head` on the frozen legacy chain alone does not
+perform this repair; use the startup entry point for legacy deployments. Owner
+mode applies the new platform revision normally. Rolling back this revision keeps
+the hardened function. This package change does not repair an already deployed
+monorepo database until its deployment owner adopts and applies the fix.

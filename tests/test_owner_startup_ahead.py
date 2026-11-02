@@ -232,6 +232,11 @@ def test_unversioned_nonempty_schema_still_fails(monkeypatch):
 
 
 def test_legacy_mode_still_upgrades_without_skipping(monkeypatch):
+    from controlplane_db import _share_lookup_hardening
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    monkeypatch.setattr(migrations, "_engine", lambda url: SimpleNamespace(begin=lambda: nullcontext(object()), dispose=lambda: None))
+    monkeypatch.setattr(_share_lookup_hardening, "apply", lambda connection: None)
     calls = []
     monkeypatch.setenv('CONTROLPLANE_MIGRATION_MODE', 'legacy')
     monkeypatch.setattr(startup.command, 'upgrade', lambda config, target: calls.append(target))
