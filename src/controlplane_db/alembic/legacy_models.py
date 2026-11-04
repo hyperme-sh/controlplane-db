@@ -1455,7 +1455,7 @@ class HypermeshPrivilegeGrant(Base):
 
 
 class HypermeshSiteToken(Base):
-    """(s)panopticon machine/site token. SHA-256 at rest. Scoped to site_id.
+    """Panopticon machine/site token. SHA-256 at rest. Scoped to site_id.
 
     Not hm_gw_, not host device_secret, not a renter portal API key.
     """
@@ -2294,7 +2294,7 @@ class OperatorAudit(Base):
 
 
 class OperatorPeer(Base):
-    """Another (s)panopticon recorded on this plane. Not a chain store."""
+    """Another Panopticon recorded on this plane. Not a chain store."""
 
     __tablename__ = "operator_peers"
     __table_args__ = (Index("ix_operator_peers_tenant", "tenant_id"),)
