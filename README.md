@@ -83,3 +83,15 @@ organization policy may shorten it). Expired evidence fails closed: validate a
 new main revision. The publisher verifies the run, source, workflow and artifact
 digest independently of release metadata. Repository immutable releases must be
 enabled. See the [shared release contract](https://github.com/hyperme-sh/.github/blob/7749591fccd30d46ba9b0adabe82114001c9d0de/actions/release-channel/README.md).
+
+## AIuditor measurement and enforcement resources
+
+The packaged owner runner includes AIuditor `0057_lab_reports` / `0058_enforcement`
+and Hypermesh `0069_lab_binding` / `0070_violation_ops`. Their runtime models,
+authentication and callers belong to `hyperme-sh/aiuditor` and
+`hyperme-sh/hypermesh-plane`; this library supplies reviewed migration resources.
+The Hypermesh tail extends the standalone `0068_environment_cert` lineage, not
+the retiring monorepo's later, divergent chain. Never stamp an existing monorepo
+database onto this lineage to suppress an unknown revision: reconcile and qualify
+that separate database cutover first. Historical envelopes retain null provenance;
+no backfill manufactures lab measurement authority.
