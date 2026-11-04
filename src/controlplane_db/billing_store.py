@@ -7,11 +7,20 @@ Cross-tenant scans retain the caller's existing RLS privileges.
 """
 from __future__ import annotations
 
+import re
 import uuid
+from collections.abc import Sequence
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
-from sqlalchemy import select, func, or_, text
+from enum import StrEnum
+
+from sqlalchemy import func, or_, select, text
+from sqlalchemy.dialects.postgresql import insert as _pg_insert
+from sqlalchemy.orm import object_session as _object_session
+
 from controlplane_db.models import BillingRecord as _BillingRecord
+from controlplane_db.models import FinancialAccountingTotal as _FinancialTotal
 
 
 class BillingPayment:
@@ -36,6 +45,35 @@ class BillingPayment:
     @property
     def updated_at(self) -> datetime:
         return self._row.updated_at
+
+    @property
+    def financial_activity_at(self) -> datetime:
+        return self._financial_clock("financial_activity_at")
+
+    @property
+    def financial_retain_until(self) -> datetime:
+        return self._financial_clock("financial_retain_until")
+
+    def _financial_clock(self, column: str) -> datetime:
+        # Legacy-mode billing remains mapped to its frozen columns. Only callers
+        # explicitly requesting a native financial clock inspect the new schema.
+        if column not in {"financial_activity_at", "financial_retain_until"}:
+            raise ValueError("Native financial clock unavailable")
+        session = _object_session(self._row)
+        if session is None:
+            raise ValueError("Native financial clock requires the caller transaction")
+        available = session.scalar(text("""SELECT count(*)=2 FROM pg_catalog.pg_attribute
+            WHERE attrelid=to_regclass('public.billing_records') AND NOT attisdropped
+            AND attname IN ('financial_activity_at','financial_retain_until')"""))
+        if available is not True:
+            raise ValueError("Native financial clock unavailable")
+        session.flush()
+        value = session.scalar(text(f"""SELECT {column} FROM public.billing_records
+            WHERE id=:id AND tenant_id IS NOT DISTINCT FROM :tenant"""),
+            {"id": self._row.id, "tenant": self._row.tenant_id})
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Native financial clock unavailable")
+        return value
 
     @property
     def scope(self) -> str:
@@ -331,3 +369,88 @@ def mismatch_fee_scan_page(session, *, after: uuid.UUID | None = None) -> list[t
         query = query.where(_BillingRecord.id > cursor)
     return list(session.execute(query.order_by(_BillingRecord.id).limit(100)).all())
 
+
+
+# Source owners supply validated native figures inside their deletion transaction.
+# Fixed metric names prevent identities entering the aggregate dimensions.
+
+class AccountingMetric(StrEnum):
+    INVOICE_PAID = "invoice_paid"
+    CHARGE_CAPTURED = "charge_captured"
+    REFUND_PAID = "refund_paid"
+    PROCESSOR_COST = "processor_cost"
+    TAX_COLLECTED = "tax_collected"
+    TAX_REFUNDED = "tax_refunded"
+    HOST_GROSS = "host_gross"
+    HOST_NET = "host_net"
+    PLATFORM_TAKE = "platform_take"
+    HOST_USDC = "host_usdc"
+    LEASE_DELIVERED = "lease_delivered"
+    PRICING_FILL = "pricing_fill"
+    PRICING_TIP = "pricing_tip"
+
+
+class AccountingUnit(StrEnum):
+    MINOR = "minor"
+    USDC_ATOM = "usdc_atom"
+    USDC_CENT = "usdc_cent"
+
+
+@dataclass(frozen=True)
+class AccountingTotal:
+    metric: AccountingMetric
+    currency: str
+    unit: AccountingUnit
+    amount: int
+
+
+def merge_anonymous_totals(session, totals: Sequence[AccountingTotal]) -> None:
+    """Add native source figures; caller owns the transaction and source deletion.
+
+    Currency is the original trusted provider currency code. USD minor units and
+    the historical USDC-cent pricing representation are distinct from USDC atoms.
+    No party, source record, timestamp or freeform metric is persisted here.
+    """
+    if len(totals) > 1000:
+        raise ValueError("Anonymous accounting batch exceeds limit")
+    grouped = {}
+    for total in totals:
+        if (
+            not isinstance(total, AccountingTotal)
+            or type(total.metric) is not AccountingMetric
+            or type(total.unit) is not AccountingUnit
+            or type(total.amount) is not int
+            or abs(total.amount) >= 10**78
+            or not isinstance(total.currency, str)
+            or not (
+                (re.fullmatch(r"[A-Z]{3}", total.currency) and total.unit is AccountingUnit.MINOR)
+                or (
+                    total.currency == "USDC"
+                    and total.unit in {AccountingUnit.USDC_ATOM, AccountingUnit.USDC_CENT}
+                )
+            )
+        ):
+            raise ValueError("Invalid anonymous accounting total")
+        key = (total.metric.value, total.currency, total.unit.value)
+        grouped[key] = grouped.get(key, 0) + total.amount
+        if abs(grouped[key]) >= 10**78:
+            raise ValueError("Anonymous accounting total exceeds precision")
+    for (metric, currency, unit), amount in sorted(grouped.items()):
+        if not amount:
+            continue
+        statement = _pg_insert(_FinancialTotal).values(
+            metric=metric, currency=currency, unit=unit, amount=amount
+        )
+        session.execute(statement.on_conflict_do_update(
+            index_elements=["metric", "currency", "unit"],
+            set_={"amount": _FinancialTotal.amount + statement.excluded.amount},
+        ))
+
+
+def anonymous_accounting_totals(session) -> tuple[AccountingTotal, ...]:
+    """Private owner accounting projection with no customer or tenant identifiers."""
+    rows = session.scalars(select(_FinancialTotal).order_by(
+        _FinancialTotal.metric, _FinancialTotal.currency, _FinancialTotal.unit
+    ).execution_options(populate_existing=True))
+    return tuple(AccountingTotal(AccountingMetric(row.metric), row.currency,
+                                 AccountingUnit(row.unit), int(row.amount)) for row in rows)

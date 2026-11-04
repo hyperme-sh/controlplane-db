@@ -95,3 +95,18 @@ the retiring monorepo's later, divergent chain. Never stamp an existing monorepo
 database onto this lineage to suppress an unknown revision: reconcile and qualify
 that separate database cutover first. Historical envelopes retain null provenance;
 no backfill manufactures lab measurement authority.
+
+## Closure migration lineage
+
+Owner mode includes account retirement, native financial fences and private
+worker preflight resources. The platform history joins the existing share-lookup
+hardening branch and the closure branch at `platform_0079_closure_merge` without
+rewriting either parent or any frozen baseline/registry. Existing databases on
+either branch upgrade through the same runner to one head. Producer-chain
+upgrades require the current platform head first, including payment-service.
+
+With TEST_DATABASE_URL set only to a disposable PostgreSQL server, package checks
+also exercise fresh creation, both prior platform histories, retained application
+data, repeat upgrades and the share-lookup ACL repair from source, installed wheel
+and rebuilt sdist. Installing this package never applies migrations; runtime
+migration mode and deployment activation remain explicit.

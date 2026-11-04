@@ -712,6 +712,26 @@ class BillingRecord(Base):
     )
 
 
+class FinancialAccountingTotal(Base):
+    """Global source totals; never a customer or tenant accounting row."""
+
+    __tablename__ = "financial_accounting_totals"
+    __table_args__ = (
+        CheckConstraint(
+            "metric IN ('invoice_paid','charge_captured','refund_paid','processor_cost','tax_collected','tax_refunded','host_gross','host_net','platform_take','host_usdc','lease_delivered','pricing_fill','pricing_tip')",
+            name="ck_financial_total_metric",
+        ),
+        CheckConstraint(
+            "(currency ~ '^[A-Z]{3}$' AND unit='minor') OR (currency='USDC' AND unit IN ('usdc_atom','usdc_cent'))",
+            name="ck_financial_total_unit",
+        ),
+    )
+    metric: Mapped[str] = mapped_column(String(32), primary_key=True)
+    currency: Mapped[str] = mapped_column(String(4), primary_key=True)
+    unit: Mapped[str] = mapped_column(String(16), primary_key=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(78, 0), nullable=False)
+
+
 class SubscriptionPlan(Base):
     __tablename__ = "subscription_plans"
 
@@ -1016,3 +1036,29 @@ class MarketplacePurchase(Base):
     billing_record_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("billing_records.id", ondelete="SET NULL"), nullable=True
     )
+
+
+class SociaclCheckpointRequest(Base):
+    """Permanent consumption commitment; contains no bearer credentials."""
+    __tablename__ = 'sociacl_checkpoint_requests'
+    __table_args__ = (
+        CheckConstraint("request_hash ~ '^[0-9a-f]{64}$'", name='ck_checkpoint_request_hash'),
+        CheckConstraint('consumed_at BETWEEN 0 AND 9007199254740991', name='ck_checkpoint_consumed_at'),
+    )
+    request_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    consumed_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class ApiKeyOwnerClosure(Base):
+    """A key issuer retirement fence serialized with that owner's key minting."""
+    __tablename__ = 'api_key_owner_closures'
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),ForeignKey('tenants.id',ondelete='RESTRICT'),primary_key=True)
+    subject: Mapped[str] = mapped_column(String(512),primary_key=True)
+    closed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),nullable=False)
+
+
+class IdentityRetirement(Base):
+    """Platform fence against recreating retired identity memberships."""
+    __tablename__ = "identity_retirements"
+    subject: Mapped[str] = mapped_column(String(512), primary_key=True)
+    retired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
