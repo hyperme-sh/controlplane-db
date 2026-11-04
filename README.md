@@ -68,3 +68,18 @@ perform this repair; use the startup entry point for legacy deployments. Owner
 mode applies the new platform revision normally. Rolling back this revision keeps
 the hardened function. This package change does not repair an already deployed
 monorepo database until its deployment owner adopts and applies the fix.
+
+## Release channels
+
+Successful main-push validation retains the validated Python wheel and source distribution and publishes
+an immutable `test-<commit>` GitHub prerelease. Push a `vMAJOR.MINOR.PATCH`
+tag at that tested commit to promote the exact files to a stable release,
+without rebuilding. Repository visibility applies to all package assets.
+Package metadata versions are preserved; these are GitHub distribution snapshots,
+not automatic PyPI publication or service deployment.
+
+Promotion requires the original Actions artifact (90-day requested retention;
+organization policy may shorten it). Expired evidence fails closed: validate a
+new main revision. The publisher verifies the run, source, workflow and artifact
+digest independently of release metadata. Repository immutable releases must be
+enabled. See the [shared release contract](https://github.com/hyperme-sh/.github/blob/7749591fccd30d46ba9b0adabe82114001c9d0de/actions/release-channel/README.md).
