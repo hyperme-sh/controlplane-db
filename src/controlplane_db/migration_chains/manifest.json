@@ -138,7 +138,8 @@
         "hypermesh_site_tokens",
         "hypermesh_sites",
         "hypermesh_tickets",
-        "hypermesh_tunnels"
+        "hypermesh_tunnels",
+        "hypermesh_violation_operations"
       ],
       "baseline_sha256": "9cb2c982ecba9562709da364a6808c784507328a24add8a64401042fc7e1e306",
       "baseline_tables": [
@@ -190,7 +191,8 @@
         "aiuditor_policies",
         "aiuditor_private_model_admissions",
         "aiuditor_suite_members",
-        "aiuditor_violations"
+        "aiuditor_violations",
+        "aiuditor_envelope_reports"
       ],
       "baseline_sha256": "58e39340aa9fc3526c2e366a62ab2f4c4265ee46e8d892f3f0fe42eceedd3016",
       "baseline_tables": [
