@@ -48,10 +48,16 @@ Most checks resolve migration graphs without applying SQL. Security regression t
 use a disposable PostgreSQL 17 service in CI; locally, set `TEST_DATABASE_URL` only
 to a disposable database with an administrative test role. They roll back test
 objects and demonstrate the historical temporary-view attack before verifying the
-repair and application/untrusted-role permissions. Without that variable these
-two integration cases are skipped.
-PostgreSQL upgrade/adoption, schema equivalence, RLS and consumer integration are
-separate acceptance requirements. Package version is 0.24.0.
+repair and application/untrusted-role permissions. The package check requires
+that variable and rejects skipped tests.
+The active 62-case suite also includes tenant RLS, membership subject uniqueness,
+AIuditor table RLS and event-index startup recovery transferred from Panopticon
+`d6d9541b72db2eb3f86cb8aedc071794eba116e3`. Test fixtures create and drop separate
+databases; historical migration imports resolve installed package resources.
+The AIuditor table inventory explicitly includes the four newer owner tables.
+Every case must pass against source, wheel and rebuilt sdist with matching JUnit
+identities; CI retains these identities. Full legacy migration equivalence and
+cross-service consumer integration remain separate acceptance requirements. Package version is 1.0.0.
 
 ## Share lookup security repair
 
@@ -119,6 +125,26 @@ receipts and RLS, and rerun private closure preflight over the combined schema.
 Closure adoption is rebased onto the published 0.24 owner history. The candidate
 contract binds the newly built development snapshot; accepted baseline files
 remain unchanged. This is code/package qualification, not permission to replace
-the accepted 0.24.0 artifact or bypass version/compatibility admission. A future
-release still requires coordinated version selection and the existing admission
+the accepted 0.24.0 artifact or bypass version/compatibility admission. This candidate selects 1.0.0 and retains the existing admission
 checks. Closure remains default-off.
+Five additional historical migration suites now run against this installed
+owner: role uniqueness, gateway rename, pricing schema, AIuditor size/lab and
+idle tunnel leases. Their fixture driver was transferred from controlplane-tests
+943df6f and resolves the packaged frozen Alembic resources; no sibling checkout
+or private fixture dependency is needed. Per-case databases are dropped and
+reusable templates remain only for the disposable PostgreSQL server lifetime.
+
+Development artifacts remain qualified under releases/qualification; test
+prereleases do not establish an accepted stable baseline or reserve a version.
+Stable publication retains independent live provenance validation.
+
+Platform budget, payment-store and billing-owner regression tests also run in
+the three artifact modes. These cases retain the Panopticon assertions against
+real disposable PostgreSQL, including billing access through a restricted
+non-superuser role. They do not contact payment providers or deployed databases.
+
+## Closure release candidate
+
+The closure runtime changes require version 1.0.0 under the conservative
+packaged-byte compatibility policy. Accepted baseline artifacts remain unchanged.
+Package and disposable database checks do not establish deployed acceptance.
