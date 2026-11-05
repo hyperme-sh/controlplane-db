@@ -21,7 +21,10 @@ packages = ["src/controlplane_db"]
 include = ["src", "tests", "scripts", "README.md", "AGENTS.md", "alembic.ini", "pyproject.toml", "uv.lock"]
 
 [dependency-groups]
-dev = ["pytest>=8.4.0"]
+dev = [
+    "pytest>=8.4.0",
+    "testcontainers[postgres]>=4.9",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
