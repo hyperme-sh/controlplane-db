@@ -1,16 +1,16 @@
 {
   "repository": "hyperme-sh/controlplane-db",
-  "revision": "4fd49fca792055a4d82263b54247f78710c376fb",
-  "release_id": 434576435,
+  "revision": "6ee52fe3e775548956cada649715fdde80f6cd1d",
+  "release_id": 434616719,
   "immutable": true,
-  "tag": "test-4fd49fca792055a4d82263b54247f78710c376fb",
-  "run_id": 41933428508,
-  "artifact_id": 13372049559,
+  "tag": "test-6ee52fe3e775548956cada649715fdde80f6cd1d",
+  "run_id": 41940733018,
+  "artifact_id": 13374864982,
   "assets": {
-    "controlplane_db-0.1.0-py3-none-any.whl": "sha256:6d5fbf9c473a68bf0fb2c5747624993b84f062b9ee7a283b2dc2d37ca0237612",
-    "controlplane_db-0.1.0.tar.gz": "sha256:28d6c4d020c63370ae0f1c1c4d817d1ab6ef7f642a43a3878de802dfa1f5e432"
+    "controlplane_db-0.24.0-py3-none-any.whl": "sha256:f9944d506da43dbc0da1d0142226096c37c1073d97b726ae05a770ab8d64f4c8",
+    "controlplane_db-0.24.0.tar.gz": "sha256:56063c7cc645e2d69a4b10d3fb37e20fe5fc71ebee766c2c42ed0294a3b50b43"
   },
-  "published_release_url": "https://github.com/hyperme-sh/controlplane-db/releases/tag/test-4fd49fca792055a4d82263b54247f78710c376fb",
+  "published_release_url": "https://github.com/hyperme-sh/controlplane-db/releases/tag/test-6ee52fe3e775548956cada649715fdde80f6cd1d",
   "checks": [
     "successful same-repository main-push package run",
     "live Actions artifact digest",
@@ -18,5 +18,5 @@
     "immutable release and tag revision",
     "asset digests equal manifest"
   ],
-  "consumer_qualification": "23 offline tests pass against the exact published wheel in an isolated interpreter; 3 PostgreSQL cases are skipped locally and require the disposable hosted database lane. Deployed schema/upgrade/adoption acceptance remains separate."
+  "consumer_qualification": "Hosted main passed 26 tests in source/fresh-wheel/rebuilt-sdist, including all 3 disposable PostgreSQL security and owner-upgrade/RLS cases, plus 15 tooling tests. Downloaded published 0.24 wheel passed 23 offline tests with 3 database cases skipped locally. Deployed schema/upgrade/adoption and downstream integration remain separate."
 }
