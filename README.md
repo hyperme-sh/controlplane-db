@@ -1,5 +1,14 @@
 # controlplane-db
 
+## Current version authority
+
+Current development version: `0.1.0`. The services remain before the unreleased
+0.24.0 milestone. Earlier 0.24/1.0 preparation and publication notes below are
+historical and do not authorize those versions. Existing tags and historical
+artifacts remain untouched. Development uses exact source pins and rebuilt
+artifacts; no prior release is required. Version changes, tags and publication
+require the owner's explicit authorization to the agent.
+
 Platform SQLAlchemy models, database sessions, store interfaces and Alembic
 migration resources. Product runtime models remain with their service owners;
 `controlplane_db.alembic.legacy_models` is a migration-only frozen registry.
@@ -57,7 +66,7 @@ databases; historical migration imports resolve installed package resources.
 The AIuditor table inventory explicitly includes the four newer owner tables.
 Every case must pass against source, wheel and rebuilt sdist with matching JUnit
 identities; CI retains these identities. Full legacy migration equivalence and
-cross-service consumer integration remain separate acceptance requirements. Package version is 1.0.0.
+cross-service consumer integration remain separate acceptance requirements. Package version is 0.1.0.
 
 ## Share lookup security repair
 
@@ -123,8 +132,7 @@ receipts and RLS, and rerun private closure preflight over the combined schema.
 Closure adoption is rebased onto the published 0.24 owner history. The candidate
 contract binds the newly built development snapshot; accepted baseline files
 remain unchanged. This is code/package qualification, not permission to replace
-the accepted 0.24.0 artifact or bypass version/compatibility admission. This candidate selects 1.0.0 and retains the existing admission
-checks. Closure remains default-off.
+the accepted 0.24.0 artifact or bypass version/compatibility admission. This candidate restores 0.1.0 for development qualification. Closure remains default-off.
 Five additional historical migration suites now run against this installed
 owner: role uniqueness, gateway rename, pricing schema, AIuditor size/lab and
 idle tunnel leases. Their fixture driver was transferred from controlplane-tests
@@ -167,8 +175,9 @@ Runtime deployment and coordinated consumer acceptance remain separate.
 
 ## Closure release candidate
 
-The closure runtime changes require version 1.0.0 under the conservative
-packaged-byte compatibility policy. Accepted baseline artifacts remain unchanged.
+The closure runtime is qualified at the restored development version 0.1.0.
+Packaged-byte differences do not authorize version advancement. Historical
+baseline artifacts remain unchanged.
 Package and disposable database checks do not establish deployed acceptance.
 
 ### Actions qualification and stable publication
