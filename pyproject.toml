@@ -6,6 +6,8 @@ build-backend = "hatchling.build"
 name = "controlplane-db"
 version = "0.1.0"
 requires-python = ">=3.13"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 dependencies = [
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30.0",
@@ -18,7 +20,7 @@ dependencies = [
 packages = ["src/controlplane_db"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "scripts", "README.md", "AGENTS.md", "alembic.ini", "pyproject.toml", "uv.lock"]
+include = ["LICENSE", "src", "tests", "scripts", "README.md", "AGENTS.md", "alembic.ini", "pyproject.toml", "uv.lock"]
 
 [dependency-groups]
 dev = [

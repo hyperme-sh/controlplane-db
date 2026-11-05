@@ -201,3 +201,8 @@ Migration paths resolve from the installed package. Expected forward changes
 explicitly include the reconciled lab/certification column order and hardened
 share-lookup body and grants; historical baselines are unchanged. The full
 schema comparison remains in place.
+
+## License
+
+This package is licensed under [Apache-2.0](LICENSE). Dependencies retain their
+own licenses; this declaration does not relicense bundled third-party material.
