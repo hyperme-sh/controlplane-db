@@ -46,3 +46,15 @@ approvals, CODEOWNERS approval requirements, or release/deployment approval gate
 unless the user explicitly requests that specific change. This includes production
 releases. Automated tests and advisory reviews are welcome; human approval
 prerequisites are not. GitHub plan upgrades are not release-adoption prerequisites.
+
+## Artifact qualification
+
+CI exports all packaged database runtime, ORM, session, migration and SQL resource
+bytes directly from the wheel without importing candidate code. Conservative
+byte equality includes implementation-only changes; this is not a semantic
+compatibility analyzer. Version metadata is excluded from the contract while the
+whole wheel digest is bound to the candidate. Rebuilt-sdist contracts must match.
+Offline resource/startup tests and disposable PostgreSQL security/owner-upgrade
+cases run in the existing hosted lane across source and both wheel contexts.
+Deployed database upgrade/adoption and downstream service integration remain
+separate. Accepted provenance identifies the immutable tested release.
