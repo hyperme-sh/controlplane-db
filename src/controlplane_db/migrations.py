@@ -141,7 +141,7 @@ def upgrade(database_url: str, chains: Sequence[str] | None = None, registry_pat
             for chain in requested:
                 if versions[chain] is None and existing.intersection(registry['chains'][chain]['tables']):
                     raise ValueError(f'{chain}: existing tables require reviewed baseline adoption')
-            if requested.intersection({'hypermesh', 'aiuditor'}) and 'platform' not in requested:
+            if requested.intersection({'hypermesh', 'aiuditor', 'payment_service'}) and 'platform' not in requested:
                 if versions['platform'] != heads['platform']:
                     raise ValueError('upgrade platform before product chains')
             for chain in _ORDER:
