@@ -50,7 +50,7 @@ to a disposable database with an administrative test role. They roll back test
 objects and demonstrate the historical temporary-view attack before verifying the
 repair and application/untrusted-role permissions. The package check requires
 that variable and rejects skipped tests.
-The active 52-case suite also includes tenant RLS, membership subject uniqueness,
+The active 62-case suite also includes tenant RLS, membership subject uniqueness,
 AIuditor table RLS and event-index startup recovery transferred from Panopticon
 `d6d9541b72db2eb3f86cb8aedc071794eba116e3`. Test fixtures create and drop separate
 databases; historical migration imports resolve installed package resources.
@@ -112,3 +112,8 @@ reusable templates remain only for the disposable PostgreSQL server lifetime.
 Development artifacts remain qualified under releases/qualification; test
 prereleases do not establish an accepted stable baseline or reserve a version.
 Stable publication retains independent live provenance validation.
+
+Platform budget, payment-store and billing-owner regression tests also run in
+the three artifact modes. These cases retain the Panopticon assertions against
+real disposable PostgreSQL, including billing access through a restricted
+non-superuser role. They do not contact payment providers or deployed databases.
