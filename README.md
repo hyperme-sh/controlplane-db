@@ -115,3 +115,10 @@ The separately merged lab/enforcement branch is retained unchanged. Hypermesh
 joins that branch and the closure tail at `hypermesh_0087_closure_lab_merge`.
 Native checks upgrade from either previous Hypermesh head, retain lab replay
 receipts and RLS, and rerun private closure preflight over the combined schema.
+
+Closure adoption is rebased onto the published 0.24 owner history. The candidate
+contract binds the newly built development snapshot; accepted baseline files
+remain unchanged. This is code/package qualification, not permission to replace
+the accepted 0.24.0 artifact or bypass version/compatibility admission. A future
+release still requires coordinated version selection and the existing admission
+checks. Closure remains default-off.
