@@ -51,7 +51,7 @@ objects and demonstrate the historical temporary-view attack before verifying th
 repair and application/untrusted-role permissions. Without that variable these
 two integration cases are skipped.
 PostgreSQL upgrade/adoption, schema equivalence, RLS and consumer integration are
-separate acceptance requirements. Package version remains 0.1.0.
+separate acceptance requirements. Package version is 0.24.0.
 
 ## Share lookup security repair
 
