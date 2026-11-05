@@ -57,7 +57,7 @@ databases; historical migration imports resolve installed package resources.
 The AIuditor table inventory explicitly includes the four newer owner tables.
 Every case must pass against source, wheel and rebuilt sdist with matching JUnit
 identities; CI retains these identities. Full legacy migration equivalence and
-cross-service consumer integration remain separate acceptance requirements. Package version is 0.24.0.
+cross-service consumer integration remain separate acceptance requirements. Package version is 1.0.0.
 
 ## Share lookup security repair
 
@@ -102,6 +102,31 @@ database onto this lineage to suppress an unknown revision: reconcile and qualif
 that separate database cutover first. Historical envelopes retain null provenance;
 no backfill manufactures lab measurement authority.
 
+## Closure migration lineage
+
+Owner mode includes account retirement, native financial fences and private
+worker preflight resources. The platform history joins the existing share-lookup
+hardening branch and the closure branch at `platform_0079_closure_merge` without
+rewriting either parent or any frozen baseline/registry. Existing databases on
+either branch upgrade through the same runner to one head. Producer-chain
+upgrades require the current platform head first, including payment-service.
+
+With TEST_DATABASE_URL set only to a disposable PostgreSQL server, package checks
+also exercise fresh creation, both prior platform histories, retained application
+data, repeat upgrades and the share-lookup ACL repair from source, installed wheel
+and rebuilt sdist. Installing this package never applies migrations; runtime
+migration mode and deployment activation remain explicit.
+
+The separately merged lab/enforcement branch is retained unchanged. Hypermesh
+joins that branch and the closure tail at `hypermesh_0087_closure_lab_merge`.
+Native checks upgrade from either previous Hypermesh head, retain lab replay
+receipts and RLS, and rerun private closure preflight over the combined schema.
+
+Closure adoption is rebased onto the published 0.24 owner history. The candidate
+contract binds the newly built development snapshot; accepted baseline files
+remain unchanged. This is code/package qualification, not permission to replace
+the accepted 0.24.0 artifact or bypass version/compatibility admission. This candidate selects 1.0.0 and retains the existing admission
+checks. Closure remains default-off.
 Five additional historical migration suites now run against this installed
 owner: role uniqueness, gateway rename, pricing schema, AIuditor size/lab and
 idle tunnel leases. Their fixture driver was transferred from controlplane-tests
@@ -141,3 +166,9 @@ The accepted record binds the existing immutable `v0.24.0` release to its actual
 GitHub release ID, source revision and published asset digests. Test snapshots
 remain under `releases/qualification` and do not establish stable acceptance.
 Runtime deployment and coordinated consumer acceptance remain separate.
+
+## Closure release candidate
+
+The closure runtime changes require version 1.0.0 under the conservative
+packaged-byte compatibility policy. Accepted baseline artifacts remain unchanged.
+Package and disposable database checks do not establish deployed acceptance.
