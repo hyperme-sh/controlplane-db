@@ -725,3 +725,207 @@ def test_retired_creator_cannot_delete_company_finances_or_claim_an_empty_scope(
             )
     finally:
         engine.dispose()
+
+
+def test_billing_batch_cannot_orphan_a_skipped_hashed_payer_risk_row(migrated_postgres):
+    import hashlib
+    from controlplane_db.test_retention import purge_test_finances
+
+    engine = create_engine(migrated_postgres)
+    keys = []
+
+    def risk(c, subject, user, payment, tenant):
+        key = hashlib.sha256(subject.encode()).hexdigest()
+        keys.append(key)
+        c.execute(
+            text(
+                "INSERT INTO payer_mismatch_accounts(account_key,day) VALUES(:k,CURRENT_DATE)"
+            ),
+            {"k": key},
+        )
+
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(c, before_close=risk)
+            enable_test_policy(c)
+        with engine.begin() as c:
+            receipt = purge_test_finances(c, subject, at, limit=1)
+            assert receipt["complete"] is False and receipt["roots_complete"] is False
+            assert receipt["tables"] == {"billing_records": 1}
+            assert (
+                c.scalar(
+                    text(
+                        "SELECT count(*) FROM account_financial_source_bindings WHERE subject=:s AND kind='payer_mismatch_accounts'"
+                    ),
+                    {"s": subject},
+                )
+                == 1
+            )
+            assert (
+                c.scalar(
+                    text(
+                        "SELECT count(*) FROM payer_mismatch_accounts WHERE account_key=:k"
+                    ),
+                    {"k": keys[0]},
+                )
+                == 1
+            )
+        with engine.begin() as c:
+            receipt = purge_test_finances(c, subject, at, limit=1)
+            assert receipt["complete"] is True
+            assert receipt["tables"] == {"payer_mismatch_accounts": 1}
+            assert (
+                c.scalar(
+                    text(
+                        "SELECT count(*) FROM payer_mismatch_accounts WHERE account_key=:k"
+                    ),
+                    {"k": keys[0]},
+                )
+                == 0
+            )
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("chain,allowed", [(8453, False), (84532, True)])
+def test_legacy_native_chain_discriminator_protects_mainnet_rows(
+    migrated_postgres, chain, allowed
+):
+    import uuid
+    from controlplane_db.test_retention import (
+        purge_test_finances,
+        TestRetentionUnavailable,
+    )
+
+    engine = create_engine(migrated_postgres)
+
+    def legacy(c, subject, user, payment, tenant):
+        # Model an administrator-restored historical native table. The retired
+        # custody chain is normally absent, but it must not bypass the network
+        # boundary if encountered during TEST cleanup. Its native discriminator
+        # is chain_id, not a livemode field.
+        c.execute(
+            text("""CREATE TABLE usdc_deposit_addresses(
+          tenant_id uuid NOT NULL REFERENCES tenants(id),user_id uuid NOT NULL REFERENCES users(id),
+          chain_id integer NOT NULL CHECK(chain_id IN(8453,84532)),address varchar(42) NOT NULL,
+          PRIMARY KEY(tenant_id,user_id,chain_id))""")
+        )
+        c.execute(
+            text(
+                "CREATE TRIGGER legacy_immutable BEFORE DELETE ON usdc_deposit_addresses FOR EACH ROW EXECUTE FUNCTION public.connect_recipient_immutable()"
+            )
+        )
+        c.execute(
+            text("INSERT INTO usdc_deposit_addresses VALUES(:t,:u,:chain,:address)"),
+            {"t": tenant, "u": user, "chain": chain, "address": "0x" + "a" * 40},
+        )
+
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(
+                c, tenant=uuid.uuid4(), before_close=legacy
+            )
+            enable_test_policy(c)
+        if allowed:
+            with engine.begin() as c:
+                receipt = purge_test_finances(c, subject, at)
+                assert (
+                    receipt["complete"] is True
+                    and receipt["tables"]["usdc_deposit_addresses"] == 1
+                )
+        else:
+            with pytest.raises(TestRetentionUnavailable, match="provider network"):
+                with engine.begin() as c:
+                    purge_test_finances(c, subject, at)
+        with engine.begin() as c:
+            assert c.scalar(text("SELECT count(*) FROM usdc_deposit_addresses")) == (
+                0 if allowed else 1
+            )
+            assert (
+                c.scalar(text("SELECT count(*) FROM account_test_delete_capabilities"))
+                == 0
+            )
+    finally:
+        engine.dispose()
+
+
+def test_directory_uuid_from_another_tenant_grants_no_financial_erasure(
+    migrated_postgres,
+):
+    import uuid
+    from controlplane_db.test_retention import purge_test_finances
+
+    engine = create_engine(migrated_postgres)
+    foreign = uuid.uuid4()
+    other_tenant = uuid.uuid4()
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(c, tenant=uuid.uuid4())
+            c.execute(
+                text("INSERT INTO tenants(id,name,is_active) VALUES(:t,:n,true)"),
+                {"t": other_tenant, "n": str(other_tenant)},
+            )
+            c.execute(
+                text(
+                    "INSERT INTO billing_records(id,tenant_id,scope,actor,user_id,payment_type,currency,amount,status,metadata) VALUES(:p,:t,'lease','user',:u,'card','usd',100,'pending','{}'::jsonb)"
+                ),
+                {"p": foreign, "t": other_tenant, "u": user},
+            )
+            enable_test_policy(c)
+        with engine.begin() as c:
+            receipt = purge_test_finances(c, subject, at)
+            assert receipt["complete"] is False and receipt["tables"] == {
+                "billing_records": 1
+            }
+            assert (
+                c.scalar(
+                    text("SELECT count(*) FROM billing_records WHERE id=:p"),
+                    {"p": foreign},
+                )
+                == 1
+            )
+    finally:
+        engine.dispose()
+
+
+def test_opaque_pricing_org_alias_is_not_customer_ownership(migrated_postgres):
+    import uuid
+    from controlplane_db.test_retention import purge_test_finances
+
+    engine = create_engine(migrated_postgres)
+    order = uuid.uuid4().hex
+
+    def company_order(c, subject, user, payment, tenant):
+        c.execute(
+            text(
+                "INSERT INTO hypermesh_pricing_pools(pool_id,tenant_id,class_id,region,kind,created_at) VALUES('test@region',:t,'test','region','P1',now())"
+            ),
+            {"t": tenant},
+        )
+        c.execute(
+            text(
+                "INSERT INTO hypermesh_orders(order_id,tenant_id,org_id,pool_id,rungs,tip_cents,hours,status,created_at) VALUES(:o,:t,:s,'test@region','[]'::jsonb,0,1,'open',now())"
+            ),
+            {"o": order, "t": tenant, "s": subject},
+        )
+
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(
+                c, tenant=uuid.uuid4(), before_close=company_order
+            )
+            enable_test_policy(c)
+        with engine.begin() as c:
+            receipt = purge_test_finances(c, subject, at)
+            assert receipt["complete"] is False and receipt["tables"] == {
+                "billing_records": 1
+            }
+            assert (
+                c.scalar(
+                    text("SELECT count(*) FROM hypermesh_orders WHERE order_id=:o"),
+                    {"o": order},
+                )
+                == 1
+            )
+    finally:
+        engine.dispose()

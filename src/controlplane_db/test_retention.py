@@ -8,6 +8,7 @@ All deletion capabilities bind actual locked row images in this transaction.
 from __future__ import annotations
 
 import json
+import uuid
 from collections import defaultdict
 from pathlib import Path
 from sqlalchemy import text
@@ -37,6 +38,54 @@ def _mentions(value, identities):
     if isinstance(value, dict):
         return any(_mentions(item, identities) for item in value.values())
     return False
+
+
+def _scope_identities(subject, life, scopes):
+    def identifiers(values):
+        if not isinstance(values, list) or len(values) > 100_000:
+            raise TestRetentionUnavailable(
+                "Malformed original financial identity inventory"
+            )
+        try:
+            result = [str(uuid.UUID(value)) for value in values if type(value) is str]
+        except (ValueError, TypeError, AttributeError):
+            raise TestRetentionUnavailable(
+                "Malformed original financial identity inventory"
+            ) from None
+        if len(result) != len(values) or len(set(result)) != len(result):
+            raise TestRetentionUnavailable(
+                "Ambiguous original financial identity inventory"
+            )
+        return set(result)
+
+    users = {None: identifiers(life["platform_profile"]["user_ids"])}
+    aliases = {None: {subject}}
+    original_tenants = identifiers(life["scope_tenants"])
+    for tenant, ids, effects in scopes:
+        key = str(tenant)
+        if (
+            key not in original_tenants
+            or effects.get("profile_inventory_complete") is not True
+        ):
+            raise TestRetentionUnavailable(
+                "Original financial scope inventory required"
+            )
+        users[key] = identifiers(ids)
+        keys = effects.get("api_keys", {}).get("keys", [])
+        if not isinstance(keys, list) or any(
+            not isinstance(item, dict) or "id" not in item for item in keys
+        ):
+            raise TestRetentionUnavailable("Original key owner inventory required")
+        aliases[key] = {
+            subject,
+            *(
+                "apikey:" + value
+                for value in identifiers([item["id"] for item in keys])
+            ),
+        }
+    if set(users) != {None, *original_tenants}:
+        raise TestRetentionUnavailable("Complete original financial scopes required")
+    return users, aliases
 
 
 def purge_test_finances(connection, subject, closed_at, *, limit=100):
@@ -77,16 +126,12 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
     ).scalar_one()
     scopes = _sql(
         connection,
-        "SELECT user_ids,effects FROM public.account_lifecycle_scopes WHERE subject=:s",
+        "SELECT tenant_id,user_ids,effects FROM public.account_lifecycle_scopes WHERE subject=:s",
         s=subject,
     ).all()
-    user_ids = set(life["platform_profile"]["user_ids"])
-    aliases = {subject}
-    for ids, effects in scopes:
-        user_ids.update(ids)
-        aliases.update(
-            "apikey:" + key["id"] for key in effects.get("api_keys", {}).get("keys", [])
-        )
+    scoped_users, scoped_aliases = _scope_identities(subject, life, scopes)
+    user_ids = set().union(*scoped_users.values())
+    aliases = set().union(*scoped_aliases.values())
     identities = user_ids | aliases
     # Source relations are owned by these schemas; catalog FKs supply dependent
     # rows. Internal FK triggers remain enabled and may refuse unsafe deletion.
@@ -190,21 +235,34 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
     more_roots = False
     pending = []
     dependencies = defaultdict(set)
-    for name in sorted(root_names):
+    root_fields = {
+        "billing_records": "user_id",
+        "hypermesh_leases": "renter_user_id",
+        "connect_access_grants": "owner_sub",
+        "usdc_deposit_addresses": "user_id",
+        "usdc_payment_intents": "user_id",
+        "usdc_chain_transfers": "user_id",
+        "onramp_sessions": "user_id",
+    }
+    # Company organizations and approval actors are not personal payer roots.
+    # In particular, pricing org_id is opaque: even a literal subject match
+    # confers no authority to delete a company's pricing order.
+    for name in sorted(root_fields):
         if name not in by_name:
             continue
         # Query owner fields, not arbitrary audit/recipient text. Native billing
         # has two identity forms; their agreement is checked below.
-        predicate = """to_jsonb(t)->>'user_id'=ANY(CAST(:users AS text[]))
-          OR to_jsonb(t)->>'owner_sub'=ANY(CAST(:ids AS text[]))
-          OR to_jsonb(t)->>'payer_sub'=ANY(CAST(:ids AS text[]))
-          OR to_jsonb(t)->>'renter_user_id'=ANY(CAST(:people AS text[]))"""
+        field = root_fields[name]
+        parameter = (
+            "people"
+            if field == "renter_user_id"
+            else ("users" if field == "user_id" else "ids")
+        )
+        predicate = f"to_jsonb(t)->>'{field}'=ANY(CAST(:{parameter} AS text[]))"
         if name == "billing_records":
             predicate += (
                 " OR to_jsonb(t)->'metadata'->>'actor_sub'=ANY(CAST(:ids AS text[]))"
             )
-        if name == "hypermesh_orders":
-            predicate += " OR to_jsonb(t)->>'org_id'=ANY(CAST(:ids AS text[]))"
         if name == "billing_records":
             predicate = "(" + predicate + ") AND t.actor <> 'tenant'"
         rows = _sql(
@@ -215,17 +273,41 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
             people=sorted(identities),
             lim=limit + 1,
         ).all()
+        if len(rows) > limit:
+            more_roots = True
         for locator, data in rows:
+            local_users = scoped_users.get(data.get("tenant_id"), set())
+            local_aliases = scoped_aliases.get(data.get("tenant_id"), set())
+            metadata = data.get("metadata")
+            if name == "billing_records" and (
+                not isinstance(metadata, dict)
+                or (
+                    metadata.get("actor_sub") is not None
+                    and type(metadata["actor_sub"]) is not str
+                )
+            ):
+                raise TestRetentionUnavailable("Malformed native payer ownership")
+            eligible = (
+                (field == "user_id" and data.get(field) in local_users)
+                or (field == "owner_sub" and data.get(field) in local_aliases)
+                or (
+                    field == "renter_user_id"
+                    and data.get(field) in local_users | local_aliases
+                )
+                or (
+                    name == "billing_records"
+                    and metadata.get("actor_sub") in local_aliases
+                )
+            )
+            if not eligible:
+                continue
             if len(pending) >= limit:
                 more_roots = True
                 break
             if name == "billing_records":
-                metadata = data.get("metadata")
-                if not isinstance(metadata, dict):
-                    raise TestRetentionUnavailable("Malformed native payer ownership")
                 user, actor = data.get("user_id"), metadata.get("actor_sub")
-                if (user is not None and user not in user_ids) or (
-                    actor is not None and actor not in aliases
+                if (user is not None and user not in local_users) or (
+                    actor is not None and actor not in local_aliases
                 ):
                     raise TestRetentionUnavailable("Conflicting native payer ownership")
             key = (by_name[name], locator)
@@ -241,11 +323,14 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
         AND NOT EXISTS(SELECT 1 FROM public.account_financial_source_bindings b WHERE b.subject<>:s
           AND b.kind='payer_mismatch_accounts' AND b.resource=r.account_key) LIMIT :lim""",
         s=subject,
-        lim=limit,
+        lim=limit + 1,
     ).all()
     for locator, data in risk:
         key = (by_name["payer_mismatch_accounts"], locator)
-        if key not in targets and len(pending) < limit:
+        if key not in targets:
+            if len(pending) >= limit:
+                more_roots = True
+                continue
             targets[key] = (data, 0)
             pending.append(key)
     allowed_names = root_names | {
@@ -299,8 +384,44 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
     # Row locks and exact-image capabilities precede every delete. All original
     # native AFTER triggers continue invalidating inventories/epochs normally.
     for (oid, locator), (data, _) in targets.items():
-        if data.get("livemode") is True:
-            raise TestRetentionUnavailable("Live provider rows are not TEST data")
+        if relations[oid] in {
+            "hypermesh_leases",
+            "hypermesh_orders",
+            "hypermesh_fills",
+            "hypermesh_payouts",
+        }:
+            parties = set(
+                _sql(
+                    connection,
+                    f"SELECT DISTINCT p.subject FROM {_table(relations[oid])} t CROSS JOIN LATERAL public.hypermesh_financial_parties(:kind,to_jsonb(t)) p WHERE t.ctid=CAST(CAST(:tid AS text) AS tid) AND p.direct_reference",
+                    kind=relations[oid],
+                    tid=locator,
+                ).scalars()
+            )
+            local_users = scoped_users.get(data.get("tenant_id"), set())
+            extra = parties - {subject} - local_users
+            directory_aliases = parties & local_users
+            # Historical renter slots contain either a directory UUID or an
+            # issuer UUID. A known directory alias is acceptable only if it is
+            # not also a different actual issuer identity.
+            collision = (
+                bool(directory_aliases)
+                and _sql(
+                    connection,
+                    "SELECT EXISTS(SELECT 1 FROM public.users WHERE keycloak_sub=ANY(CAST(:ids AS text[])) UNION ALL SELECT 1 FROM public.identity_retirements WHERE subject=ANY(CAST(:ids AS text[])))",
+                    ids=sorted(directory_aliases),
+                ).scalar_one()
+            )
+            if extra or collision:
+                raise TestRetentionUnavailable(
+                    "Conflicting native Hypermesh payer ownership"
+                )
+        if data.get("livemode") is True or (
+            "chain_id" in data and data["chain_id"] != 84532
+        ):
+            raise TestRetentionUnavailable(
+                "Live or unsupported provider network is not TEST data"
+            )
         current = _sql(
             connection,
             f"SELECT to_jsonb(t) FROM {_table(relations[oid])} t WHERE ctid=CAST(CAST(:tid AS text) AS tid) FOR UPDATE",
@@ -363,6 +484,11 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
             .scalars()
             .all()
         )
+        if rows and name == "payer_mismatch_accounts":
+            # The canonical identity is its original binding and hashed key,
+            # not a plaintext subject inside the risk row. A bounded batch may
+            # not detach this proof while the actual row still exists.
+            continue
         if any(_mentions(row, identities) for row in rows):
             continue
         # Do not erase company records through an indirect former membership.

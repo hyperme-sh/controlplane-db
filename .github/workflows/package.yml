@@ -36,12 +36,12 @@ jobs:
         env:
           TEST_EVIDENCE_DIR: ${{ runner.temp }}/database-test-results
           TEST_DATABASE_URL: postgresql+psycopg://postgres:package-test-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/postgres
-      # GitHub checks action allowlists even when this main-only upload is skipped.
+      # Retain PR evidence without publishing a tag or release.
       - name: Retain validated package bytes
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: tested-dist
+          name: ${{ github.event_name == 'pull_request' && 'prepared-dist' || 'tested-dist' }}
           path: ${{ env.RELEASE_ARTIFACT_DIR }}/*
           if-no-files-found: error
           retention-days: 90
