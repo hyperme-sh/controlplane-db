@@ -381,7 +381,8 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
                         )
                     targets[key] = (child_data, depth + 1)
                     pending.append(key)
-    # Row locks and exact-image capabilities precede every delete. All original
+    # Source table locks exclude concurrent writers; exact-image capabilities
+    # precede every delete without granting source UPDATE. Original
     # native AFTER triggers continue invalidating inventories/epochs normally.
     for (oid, locator), (data, _) in targets.items():
         if relations[oid] in {
@@ -424,7 +425,7 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
             )
         current = _sql(
             connection,
-            f"SELECT to_jsonb(t) FROM {_table(relations[oid])} t WHERE ctid=CAST(CAST(:tid AS text) AS tid) FOR UPDATE",
+            f"SELECT to_jsonb(t) FROM {_table(relations[oid])} t WHERE ctid=CAST(CAST(:tid AS text) AS tid)",
             tid=locator,
         ).scalar_one()
         if current != data:
