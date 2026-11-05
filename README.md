@@ -179,3 +179,16 @@ publisher independently verifies a real immutable stable baseline and refuses
 qualification snapshots, even if a caller job reports success. Existing valid
 stable records are retained; no release, version change, deployment or human
 approval prerequisite is introduced by this correction.
+
+The retained owner-chain integration suite comes from Panopticon
+`d6d9541b72db2eb3f86cb8aedc071794eba116e3`. Its 18 database test functions
+(20 parametrized cases) now run here from source, installed wheel and rebuilt
+sdist. They compare frozen-baseline schema objects, adoption, rollback, owner
+isolation, RLS, grants, and irreversible retirement behavior on disposable
+PostgreSQL 17. The remaining marketplace-startup function (three cases) runs
+in controlplane-tenancy #21, preserving all 19 original test functions.
+
+Migration paths resolve from the installed package. Expected forward changes
+explicitly include the reconciled lab/certification column order and hardened
+share-lookup body and grants; historical baselines are unchanged. The full
+schema comparison remains in place.
