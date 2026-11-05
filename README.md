@@ -50,7 +50,7 @@ to a disposable database with an administrative test role. They roll back test
 objects and demonstrate the historical temporary-view attack before verifying the
 repair and application/untrusted-role permissions. The package check requires
 that variable and rejects skipped tests.
-The active 36-case suite also includes tenant RLS, membership subject uniqueness,
+The active 52-case suite also includes tenant RLS, membership subject uniqueness,
 AIuditor table RLS and event-index startup recovery transferred from Panopticon
 `d6d9541b72db2eb3f86cb8aedc071794eba116e3`. Test fixtures create and drop separate
 databases; historical migration imports resolve installed package resources.
@@ -101,3 +101,14 @@ the retiring monorepo's later, divergent chain. Never stamp an existing monorepo
 database onto this lineage to suppress an unknown revision: reconcile and qualify
 that separate database cutover first. Historical envelopes retain null provenance;
 no backfill manufactures lab measurement authority.
+
+Five additional historical migration suites now run against this installed
+owner: role uniqueness, gateway rename, pricing schema, AIuditor size/lab and
+idle tunnel leases. Their fixture driver was transferred from controlplane-tests
+943df6f and resolves the packaged frozen Alembic resources; no sibling checkout
+or private fixture dependency is needed. Per-case databases are dropped and
+reusable templates remain only for the disposable PostgreSQL server lifetime.
+
+Development artifacts remain qualified under releases/qualification; test
+prereleases do not establish an accepted stable baseline or reserve a version.
+Stable publication retains independent live provenance validation.
