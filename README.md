@@ -110,3 +110,8 @@ also exercise fresh creation, both prior platform histories, retained applicatio
 data, repeat upgrades and the share-lookup ACL repair from source, installed wheel
 and rebuilt sdist. Installing this package never applies migrations; runtime
 migration mode and deployment activation remain explicit.
+
+The separately merged lab/enforcement branch is retained unchanged. Hypermesh
+joins that branch and the closure tail at `hypermesh_0087_closure_lab_merge`.
+Native checks upgrade from either previous Hypermesh head, retain lab replay
+receipts and RLS, and rerun private closure preflight over the combined schema.

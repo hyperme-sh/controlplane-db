@@ -56,3 +56,31 @@ def test_upgrade_reconciles_hardening_and_closure_and_preserves_worker_preflight
             assert migrations.current_heads(url) == migrations.chain_heads()
         finally:
             engine.dispose()
+
+
+@pytest.mark.parametrize('previous', ['hypermesh_0070_violation_ops', 'hypermesh_0086_fin_state'])
+def test_hypermesh_lab_and_closure_histories_converge_without_rewriting(previous):
+    with disposable_database() as url:
+        migrations.upgrade(url, chains=['platform', 'events'])
+        engine = create_engine(url)
+        try:
+            with engine.begin() as connection:
+                command.upgrade(migrations._config(migrations._ROOT, 'hypermesh', connection), previous)
+                identifier = uuid.uuid4()
+                connection.execute(text("INSERT INTO tenants(id,name,is_active) VALUES(:id,'retained-hypermesh',true)"), {'id': identifier})
+                if previous == 'hypermesh_0070_violation_ops':
+                    connection.execute(text('INSERT INTO hypermesh_violation_operations(tenant_id,operation_id,lease_id,binding) VALUES(:id,:operation,:lease,\'retained\')'), {'id':identifier,'operation':uuid.uuid4(),'lease':uuid.uuid4()})
+            migrations.upgrade(url)
+            assert migrations.current_heads(url) == migrations.chain_heads()
+            assert migrations.chain_heads()['hypermesh'] == 'hypermesh_0087_closure_lab_merge'
+            with engine.begin() as connection:
+                assert connection.scalar(text("SELECT count(*) FROM tenants WHERE id=:id"), {'id':identifier}) == 1
+                assert connection.scalar(text("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='hypermesh_jobs' AND column_name='lab_binding'")) == 1
+                assert connection.scalar(text("SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid='public.hypermesh_violation_operations'::regclass")) is True
+                connection.execute(text('SELECT public.account_check_closure_worker_installation()'))
+                if previous == 'hypermesh_0070_violation_ops':
+                    assert connection.scalar(text('SELECT binding FROM hypermesh_violation_operations WHERE tenant_id=:id'), {'id':identifier}) == 'retained'
+            migrations.upgrade(url)
+            assert migrations.current_heads(url) == migrations.chain_heads()
+        finally:
+            engine.dispose()
