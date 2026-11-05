@@ -1131,6 +1131,7 @@ def assert_subject_scope_delta(before, after):
 
 
 def assert_payment_financial_schema_delta(after):
+    assert_test_retention_schema_delta(after)
     clock_tables = {'host_payout_addresses', 'connect_recipient_accounts', 'billing_tax_orders',
         'billing_tax_calculations', 'connect_bank_approvals',
         'connect_reversal_exposure_observations', 'connect_control_proofs', 'payer_mismatch_accounts'}
@@ -1358,3 +1359,37 @@ def test_retirement_downgrade_preserves_recorded_tombstones(record_kind):
             assert migrations.current_heads(url)['platform'] == 'platform_0059_account_lifecycles'
         finally:
             engine.dispose()
+
+
+def assert_test_retention_schema_delta(after):
+    expected = {
+        'account_test_data_policy': {'singleton','database_oid','database_name','enabled','cluster_identifier'},
+        'account_test_delete_capabilities': {'transaction_id','relation','row_digest'},
+        'account_test_policy_originals': {'signature','definition'},
+        'account_test_delete_guard_originals': {'signature','definition'},
+    }
+    for name, columns in expected.items():
+        table = after['tables'].pop(name)
+        assert {c[0] for c in table['columns']} == columns
+        assert table['rls'] == [True,True]
+        assert not table['policies'] and not table['column_grants']
+        assert all(grant[0] == 'OWNER' for grant in table['grants'])
+        if name == 'account_test_delete_capabilities':
+            assert len(table['triggers']) == 1
+            trigger = table['triggers'][0]
+            assert trigger[0] == 'test_delete_capabilities_ephemeral' and trigger[2] == 'O'
+            assert 'DEFERRABLE INITIALLY DEFERRED' in trigger[1]
+        else:
+            assert not table['triggers']
+    for signature in ('account_test_data_enabled()', 'account_lock_test_data_policy()',
+                      'account_test_row_delete_allowed(p_relation oid, p_row jsonb)',
+                      'account_test_capabilities_ephemeral()'):
+        function = after['functions'].pop(signature)
+        assert 'SECURITY DEFINER' in function['definition']
+        assert "search_path TO 'pg_catalog'" in function['definition']
+        assert "row_security TO 'off'" in function['definition']
+        assert function['grants'] == [['OWNER','EXECUTE',False]]
+    for signature in ('connect_recipient_immutable()', 'payment_payer_risk_expiry_guard()', 'tax_history_retained()'):
+        definition = after['functions'][signature]['definition']
+        assert definition.count('public.account_test_row_delete_allowed(TG_RELID,to_jsonb(OLD))') == 1
+        assert "TG_LEVEL='ROW' AND TG_OP='DELETE'" in definition

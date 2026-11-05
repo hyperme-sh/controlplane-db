@@ -223,3 +223,61 @@ consumer/deployment selection must bind exact component commits and artifact
 digests, not matching repository-local counters. No stable promotion is automatic.
 Private jobs use debrunners and public jobs use hosted Ubuntu; no approval gates
 are introduced. Missing original evidence or publication collisions fail closed.
+
+## TEST financial retention
+
+Platform `platform_0080_test_retention` and payment
+`payment_service_0081_test_gc` add a private, database-bound TEST policy. They
+leave production retention clocks and preservation/settlement rules in place.
+No database becomes TEST merely by applying the migrations or setting an HTTP
+field, tenant GUC, or process environment variable.
+
+The database administrator registers the **selected TEST database** explicitly:
+
+```sql
+INSERT INTO public.account_test_data_policy
+  (singleton, database_oid, database_name, enabled)
+SELECT true, oid, datname, true
+FROM pg_catalog.pg_database WHERE datname = current_database();
+```
+
+The private user-service worker also requires `FASTAPI_ENV=test` and
+`ACCOUNT_CLOSURE_RETENTION=none`. Startup refuses a disagreement with the
+protected database policy. A copied policy does not enable another database:
+its database OID, name and PostgreSQL cluster identifier must match. The mode table is private; the
+worker locks the selected policy through a definer function rather than receiving
+permission to enable it. Disabling the policy waits for an in-flight erasure
+transaction's shared row lock.
+
+`controlplane_db.test_retention.purge_test_finances` runs only within the private
+coordinator's existing transaction and native original-closure/inventory proof.
+It deletes recent, unsettled TEST payer records despite accepted financial holds.
+The worker runs this stage before personal anonymization removes payer aliases.
+Exact tenant-bound billing/order/tax/lease/payout relationships and actual foreign
+keys determine dependent rows; arbitrary audit text does not establish ownership.
+Tenant/company billing records are preserved through retired creators. Unknown
+owners, cross-tenant dependencies, cycles and oversized batches remain pending.
+Live-provider rows are outside TEST erasure.
+
+No trigger or foreign-key constraint is disabled. Exact locked row images receive
+private, transaction-bound delete capabilities. Only existing financial deletion
+guards recognize them; ordinary production guards and AFTER-trigger inventory
+invalidation remain active. A deferred constraint forbids capabilities surviving
+commit. The caller records committed counts and rechecks fresh native owner
+proofs before marking the account complete. No provider calls, refunds, transfers
+or settlements occur in this helper. Physical model/storage cleanup still needs
+its own owner acknowledgments.
+
+PUBLIC receives no access to mode, capabilities or original guard definitions,
+and no execution of the new private functions. The private TEST coordinator needs
+execution of `account_test_data_enabled()`, `account_lock_test_data_policy()` and
+`account_test_row_delete_allowed(oid,jsonb)`, plus SELECT/INSERT/DELETE on the
+capability table and the appropriate SELECT/DELETE grants on its selected native
+financial tables. It does not need UPDATE on the policy table. The public service
+rejects grants on all four private TEST support tables. Production workers need
+only the read-only mode check in addition to their existing authority.
+
+Downgrade restores the exact saved native guard definitions. Disable TEST mode
+first, restore the payment-owner guards, then remove platform TEST support;
+removing the platform helper while owner guards still reference it is refused.
+No deployed database or provider is changed by package qualification.

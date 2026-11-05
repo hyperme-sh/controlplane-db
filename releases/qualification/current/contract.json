@@ -149,6 +149,7 @@
     "controlplane_db/migration_chains/payment_service/versions/0078_personal_access.py": "ca5fd2fceac96e0e7f0bd222d0da060742e59411192739f701fd377d77af7a43",
     "controlplane_db/migration_chains/payment_service/versions/0079_payer_risk_expiry.py": "4a57a08566393725b74fed4aa58749184ac1d93ee07eeeccd3a4215eab3bf208",
     "controlplane_db/migration_chains/payment_service/versions/0080_financial_state.py": "11151730bf9c9b92940ae53f80df11317fa9201aa7239cd03e0cecf6fcf3b2ba",
+    "controlplane_db/migration_chains/payment_service/versions/0081_test_delete_guards.py": "589fb0ebeb112c1473969c92fe57610ff4e6af6f204c0e4888245826d5904d81",
     "controlplane_db/migration_chains/payment_service/versions/baseline.sql": "fc9ba53d65e28d71684597d171b5639819325d2bbbbfaed49dbcf458cb8c4aa8",
     "controlplane_db/migration_chains/platform/versions/0053_baseline.py": "717936c5b01f24ee30e23e08babba2558c6f0969e2cc6df3460d644d87284062",
     "controlplane_db/migration_chains/platform/versions/0054_subject_memberships.py": "8bc53055790026013244a405f9a65c73cab496dc90a58d758ce51a277de81c7c",
@@ -178,12 +179,14 @@
     "controlplane_db/migration_chains/platform/versions/0077_payer_risk_gc.py": "76169fd6eb2e4d96e19b098388d488f71c8072e7b060cf2b9ff5b047350927ab",
     "controlplane_db/migration_chains/platform/versions/0078_empty_financial_completion.py": "34665bb485a87dd82aa315d09a7288b324a4fce379f76ea7549d41b0f8de3903",
     "controlplane_db/migration_chains/platform/versions/0079_closure_share_lookup_merge.py": "39bf17b3777fdae90d4a96bc0fd33e8709f606b49421cbce1c7545b19b1f031f",
+    "controlplane_db/migration_chains/platform/versions/0080_test_retention.py": "8e3b6fb76593cfee567892642025d6f59ab437ed07b568f22d35fe8b75706652",
     "controlplane_db/migration_chains/platform/versions/baseline.sql": "98f19090af47422c34cee6da961a74dc1f4aa0386573a6f2e2343680b88d2ebc",
     "controlplane_db/migrations.py": "090c4b2604d681b3142bd47521b49ae6eb40e6fcbcf86792184dde2d4321bb90",
     "controlplane_db/models.py": "4b9ff8ef4466aba7f9df30cfab33d17cc5535c8a6b17ef05e9655efe0dd18175",
     "controlplane_db/payment_store.py": "e8ddb891bdc2b2fed7f2c9db1838e7903ba2e9eb18b7ca41cee86044b88c95a3",
     "controlplane_db/session.py": "cab678c5e27791377ebd4ff5885f557c088874fdd44c6bb3ff4e4f94a7dbf83a",
-    "controlplane_db/startup.py": "9936b0a2cc861233f28025005a58105beb0444fd2526dd666ddb48553fa46268"
+    "controlplane_db/startup.py": "9936b0a2cc861233f28025005a58105beb0444fd2526dd666ddb48553fa46268",
+    "controlplane_db/test_retention.py": "4dbc925c5f3cc8a70d1ec7a91573455672886408087be06ecab4cf98a731cc6f"
   },
   "public_root_exports": [
     "Base",
