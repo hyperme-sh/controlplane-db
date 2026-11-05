@@ -265,6 +265,32 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
             )
         if name == "billing_records":
             predicate = "(" + predicate + ") AND t.actor <> 'tenant'"
+        # Eligibility must precede LIMIT: unrelated tenant rows sharing a
+        # directory UUID must never starve this account's bounded batches.
+        scoped_predicates = []
+        scoped_params = {}
+        for index, tenant in enumerate(scoped_users):
+            local_users = scoped_users[tenant]
+            local_aliases = scoped_aliases[tenant]
+            values = (
+                local_users | local_aliases
+                if field == "renter_user_id"
+                else local_aliases
+                if field == "owner_sub"
+                else local_users
+            )
+            owner = (
+                f"to_jsonb(t)->>'{field}'=ANY(CAST(:scope_values_{index} AS text[]))"
+            )
+            scoped_params[f"scope_values_{index}"] = sorted(values)
+            scoped_params[f"scope_tenant_{index}"] = tenant
+            if name == "billing_records":
+                owner += f" OR to_jsonb(t)->'metadata'->>'actor_sub'=ANY(CAST(:scope_aliases_{index} AS text[]))"
+                scoped_params[f"scope_aliases_{index}"] = sorted(local_aliases)
+            scoped_predicates.append(
+                f"(to_jsonb(t)->>'tenant_id' IS NOT DISTINCT FROM CAST(:scope_tenant_{index} AS text) AND ({owner}))"
+            )
+        predicate = f"({predicate}) AND (" + " OR ".join(scoped_predicates) + ")"
         rows = _sql(
             connection,
             f"SELECT ctid::text,to_jsonb(t) FROM {_table(name)} t WHERE {predicate} LIMIT :lim",
@@ -272,6 +298,7 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
             users=sorted(user_ids),
             people=sorted(identities),
             lim=limit + 1,
+            **scoped_params,
         ).all()
         if len(rows) > limit:
             more_roots = True

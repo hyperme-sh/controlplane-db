@@ -929,3 +929,59 @@ def test_opaque_pricing_org_alias_is_not_customer_ownership(migrated_postgres):
             )
     finally:
         engine.dispose()
+
+
+def test_ineligible_tenant_rows_cannot_starve_a_bounded_financial_batch(
+    migrated_postgres,
+):
+    import uuid
+    from controlplane_db.test_retention import purge_test_finances
+
+    engine = create_engine(migrated_postgres)
+    foreign = [uuid.uuid4(), uuid.uuid4()]
+    other_tenant = uuid.uuid4()
+
+    def reorder(c, subject, user, payment, tenant):
+        c.execute(
+            text("INSERT INTO tenants(id,name,is_active) VALUES(:t,:n,true)"),
+            {"t": other_tenant, "n": str(other_tenant)},
+        )
+        for identifier in foreign:
+            c.execute(
+                text(
+                    "INSERT INTO billing_records(id,tenant_id,scope,actor,user_id,payment_type,currency,amount,status,metadata) VALUES(:p,:t,'lease','user',:u,'card','usd',100,'pending','{}'::jsonb)"
+                ),
+                {"p": identifier, "t": other_tenant, "u": user},
+            )
+        # Put the eligible live tuple after both unrelated rows in the heap.
+        c.execute(
+            text("UPDATE billing_records SET amount=amount WHERE id=:p"), {"p": payment}
+        )
+
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(
+                c, tenant=uuid.uuid4(), before_close=reorder
+            )
+            enable_test_policy(c)
+        with engine.begin() as c:
+            receipt = purge_test_finances(c, subject, at, limit=1)
+            assert receipt["tables"] == {"billing_records": 1}
+            assert (
+                c.scalar(
+                    text("SELECT count(*) FROM billing_records WHERE id=:p"),
+                    {"p": payment},
+                )
+                == 0
+            )
+            assert (
+                c.scalar(
+                    text(
+                        "SELECT count(*) FROM billing_records WHERE id=ANY(CAST(:ids AS uuid[]))"
+                    ),
+                    {"ids": foreign},
+                )
+                == 2
+            )
+    finally:
+        engine.dispose()
