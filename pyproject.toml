@@ -25,3 +25,4 @@ dev = ["pytest>=8.4.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: disposable PostgreSQL owner integration"]

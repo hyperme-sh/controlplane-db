@@ -48,10 +48,16 @@ Most checks resolve migration graphs without applying SQL. Security regression t
 use a disposable PostgreSQL 17 service in CI; locally, set `TEST_DATABASE_URL` only
 to a disposable database with an administrative test role. They roll back test
 objects and demonstrate the historical temporary-view attack before verifying the
-repair and application/untrusted-role permissions. Without that variable these
-two integration cases are skipped.
-PostgreSQL upgrade/adoption, schema equivalence, RLS and consumer integration are
-separate acceptance requirements. Package version is 0.24.0.
+repair and application/untrusted-role permissions. The package check requires
+that variable and rejects skipped tests.
+The active 36-case suite also includes tenant RLS, membership subject uniqueness,
+AIuditor table RLS and event-index startup recovery transferred from Panopticon
+`d6d9541b72db2eb3f86cb8aedc071794eba116e3`. Test fixtures create and drop separate
+databases; historical migration imports resolve installed package resources.
+The AIuditor table inventory explicitly includes the four newer owner tables.
+Every case must pass against source, wheel and rebuilt sdist with matching JUnit
+identities; CI retains these identities. Full legacy migration equivalence and
+cross-service consumer integration remain separate acceptance requirements. Package version is 0.24.0.
 
 ## Share lookup security repair
 
