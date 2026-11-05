@@ -25,4 +25,4 @@ dev = ["pytest>=8.4.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: disposable PostgreSQL owner integration"]
+markers = ["integration: disposable PostgreSQL owner integration", "migration_start(revision): start from a frozen historical revision"]
