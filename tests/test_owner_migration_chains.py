@@ -380,6 +380,9 @@ def assert_cache_migration_delta(before, after):
         assert clock_function['grants'] == [['OWNER', 'EXECUTE', False]]
         if signature != 'account_billing_financial_metadata(p_metadata jsonb)':
             assert 'SECURITY DEFINER' in clock_function['definition']
+        if signature == 'account_billing_financial_clock()':
+            assert clock_function['definition'].count("'stripe_livemode'")==2
+            assert "interval '7 years'" in clock_function['definition']
     billing = after['tables']['billing_records']
     added_columns = [c for c in billing['columns'] if c[0] in {'financial_activity_at', 'financial_retain_until'}]
     assert [(c[0], c[1], c[2], c[3]) for c in added_columns] == [

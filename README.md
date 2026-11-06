@@ -379,3 +379,8 @@ Missing, live, unproven or mismatched links cannot authorize a lease root.
 Stripe classification traverses canonical metadata values and nested object/array
 keys. TEST workers require this current native provenance installation before
 claiming work; an older installed backend cannot silently keep a weaker guard.
+
+Provider-mode observations preserve the original production retention clock.
+Forward platform_0084_stripe_clock excludes only stripe_livemode from monetary
+activity comparison; real money changes still advance the seven-year clock and
+native financial epochs still invalidate old inventory proofs.

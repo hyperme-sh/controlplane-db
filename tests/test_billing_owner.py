@@ -123,8 +123,10 @@ def test_provider_mode_adapter_preserves_legacy_schema_and_native_immutability(b
         with pytest.raises(ValueError,match='Verified Stripe provider mode'):
             record_stripe_mode(session,row,0)
         assert stripe_mode(session,row) is None
+        clocks=session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()
         assert record_stripe_mode(session,row,False) is native
         assert stripe_mode(session,row) is (False if native else None)
+        assert session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()==clocks
         session.rollback()
     with Session(engine) as session:
         row=get_payment(session,ta,ids[0],lock=True)
@@ -139,3 +141,10 @@ def test_provider_mode_adapter_preserves_legacy_schema_and_native_immutability(b
         with Session(engine) as session:
             assert stripe_mode(session,get_payment(session,ta,ids[0])) is True
             assert stripe_mode(session,get_payment(session,tb,ids[1])) is None
+        with Session(engine) as session:
+            row=get_payment(session,ta,ids[0],lock=True)
+            before=session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()
+            row.amount+=1
+            session.flush()
+            after=session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()
+            assert after[0]>before[0] and after[1]>before[1]
