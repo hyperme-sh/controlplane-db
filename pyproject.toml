@@ -18,6 +18,7 @@ dependencies = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/controlplane_db"]
+exclude = ["src/controlplane_db/alembic/**", "src/controlplane_db/migration_chains/**", "src/controlplane_db/alembic.ini"]
 
 [tool.hatch.build.targets.sdist]
 include = ["LICENSE", "src", "tests", "scripts", "README.md", "AGENTS.md", "alembic.ini", "pyproject.toml", "uv.lock"]
