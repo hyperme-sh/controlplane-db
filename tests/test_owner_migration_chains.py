@@ -199,6 +199,7 @@ def test_reload_adopts_existing_database_and_is_repeatable(databases, tmp_path):
     assert_payment_financial_schema_delta(after)
     assert after['tables'].pop('host_payout_addresses')['rls'] == [True, True]
     assert_journal_schema_delta(after)
+    assert_hypermesh_empty_scope_delta(before, after)
     assert_subject_scope_delta(before, after)
     assert_cache_migration_delta(before, after)
     root = tmp_path / 'chains'
@@ -248,6 +249,7 @@ def test_reload_fresh_database_uses_owner_schema(databases):
     assert after['tables'].pop('host_payout_addresses')['rls'] == [True, True]
     assert_journal_schema_delta(after)
     before = snapshot(databases['source'])
+    assert_hypermesh_empty_scope_delta(before, after)
     assert_subject_scope_delta(before, after)
     assert_cache_migration_delta(before, after)
     assert migrations.current_heads(databases['reload_fresh']) == migrations.chain_heads()
@@ -1463,3 +1465,24 @@ def assert_test_retention_schema_delta(after):
             == 1
         )
         assert "TG_LEVEL='ROW' AND TG_OP='DELETE'" in definition
+
+
+def assert_hypermesh_empty_scope_delta(before, after):
+    unsafe = "(current_setting('app.current_tenant_id'::text, true))::uuid"
+    safe = "(NULLIF(current_setting('app.current_tenant_id'::text, true), ''::text))::uuid"
+    checked = 0
+    for name, old_table in before['tables'].items():
+        if not name.startswith('hypermesh_') or name not in after['tables']:
+            continue
+        old_policies = {row[0]: row for row in old_table['policies']}
+        for row in after['tables'][name]['policies']:
+            old = old_policies.get(row[0])
+            if old is None:
+                continue
+            for index in (4, 5):
+                if old[index] and unsafe in old[index]:
+                    assert safe in row[index]
+                    assert row[index].replace(safe, unsafe) == old[index]
+                    row[index] = old[index]
+                    checked += 1
+    assert checked > 0

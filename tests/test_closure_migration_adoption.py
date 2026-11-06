@@ -72,7 +72,7 @@ def test_hypermesh_lab_and_closure_histories_converge_without_rewriting(previous
                     connection.execute(text('INSERT INTO hypermesh_violation_operations(tenant_id,operation_id,lease_id,binding) VALUES(:id,:operation,:lease,\'retained\')'), {'id':identifier,'operation':uuid.uuid4(),'lease':uuid.uuid4()})
             migrations.upgrade(url)
             assert migrations.current_heads(url) == migrations.chain_heads()
-            assert migrations.chain_heads()['hypermesh'] == 'hypermesh_0087_closure_lab_merge'
+            assert migrations.chain_heads()['hypermesh'] == 'hypermesh_0088_safe_tenant_guc'
             with engine.begin() as connection:
                 assert connection.scalar(text("SELECT count(*) FROM tenants WHERE id=:id"), {'id':identifier}) == 1
                 assert connection.scalar(text("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='hypermesh_jobs' AND column_name='lab_binding'")) == 1
