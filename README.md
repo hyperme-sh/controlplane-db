@@ -372,3 +372,22 @@ Legacy databases without the native column retain their existing payment writes.
 Existing Stripe-bearing rows without independently verified provider mode remain
 ineligible for TEST erasure. The payment owner may record actual validated
 provider observations; no migration guesses or backfills their sandbox status.
+
+Forward `platform_0083_stripe_scope` also requires original same-tenant billing
+provenance for Stripe-bearing leases, including exact saved session matching.
+Missing, live, unproven or mismatched links cannot authorize a lease root.
+Stripe classification traverses canonical metadata values and nested object/array
+keys. TEST workers require this current native provenance installation before
+claiming work; an older installed backend cannot silently keep a weaker guard.
+
+Provider-mode observations preserve the original production retention clock.
+Forward platform_0084_stripe_clock excludes only stripe_livemode from monetary
+activity comparison; real money changes still advance the seven-year clock and
+native financial epochs still invalidate old inventory proofs.
+
+The platform_0085_stripe_merge head converges both independently consumed Stripe
+guard histories without replacing the merged ancestry migration. Native upgrades
+start at each original single head, preserve tenant/billing rows, repeat as a
+no-op, and roll back through the genuine common predecessor before rebuilding
+either history. Scope checks and exact guard restoration work with or without
+the retained pre0083 function alias.
