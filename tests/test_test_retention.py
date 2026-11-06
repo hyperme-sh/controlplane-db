@@ -1385,3 +1385,36 @@ def test_marketplace_dependencies_require_the_original_scoped_buyer(migrated_pos
                 assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities'))==0
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("livemode", [None,False,True])
+@pytest.mark.parametrize("provider_field", ["stripe_customer_id","stripe_session_id","stripe_subscription_id","metadata"])
+def test_stripe_billing_requires_immutable_sandbox_provenance(migrated_postgres,livemode,provider_field):
+    from controlplane_db.test_retention import purge_test_finances
+    engine=create_engine(migrated_postgres)
+    try:
+        with engine.begin() as c:
+            subject,at,user,payment=seed_closed_payer(c)
+            enable_test_policy(c)
+            if provider_field=='metadata':
+                c.execute(text("UPDATE billing_records SET metadata=metadata||'{\"stripe_payment_intent_id\":\"pi_fixture\"}'::jsonb WHERE id=:p"),{'p':payment})
+            else:
+                c.execute(text(f"UPDATE billing_records SET {provider_field}='provider_fixture' WHERE id=:p"),{'p':payment})
+            c.execute(text('UPDATE billing_records SET stripe_livemode=:mode WHERE id=:p'),{'mode':livemode,'p':payment})
+        if livemode is False:
+            with engine.begin() as c:
+                assert purge_test_finances(c,subject,at)['tables']=={'billing_records':1}
+        else:
+            with pytest.raises(DBAPIError,match='sandbox Stripe billing provenance'):
+                with engine.begin() as c:
+                    oid,tid=c.execute(text('SELECT tableoid,ctid::text FROM billing_records WHERE id=:p'),{'p':payment}).one()
+                    c.execute(text('SELECT public.account_stage_test_delete(:s,:at,CAST(:r AS oid),:tid,NULL,NULL)'),{'s':subject,'at':at,'r':oid,'tid':tid})
+            with engine.begin() as c:
+                assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'),{'p':payment})==1
+        if livemode is True:
+            for replacement in [None,False]:
+                with pytest.raises(DBAPIError,match='mode is immutable'):
+                    with engine.begin() as c:
+                        c.execute(text('UPDATE billing_records SET stripe_livemode=:mode WHERE id=:p'),{'mode':replacement,'p':payment})
+    finally:
+        engine.dispose()

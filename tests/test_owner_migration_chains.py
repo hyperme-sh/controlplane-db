@@ -1364,6 +1364,14 @@ def test_retirement_downgrade_preserves_recorded_tombstones(record_kind):
 
 
 def assert_test_retention_schema_delta(after):
+    billing = after['tables']['billing_records']
+    mode = [c for c in billing['columns'] if c[0]=='stripe_livemode']
+    assert mode == [['stripe_livemode','boolean',False,None,'','',None]]
+    billing['columns'] = [c for c in billing['columns'] if c not in mode]
+    triggers = [t for t in billing['triggers'] if t[0]=='billing_stripe_mode_immutable']
+    assert len(triggers)==1 and triggers[0][2]=='O'
+    assert 'BEFORE INSERT OR UPDATE ON public.billing_records' in triggers[0][1]
+    billing['triggers'] = [t for t in billing['triggers'] if t not in triggers]
     expected = {
         "account_test_data_policy": {
             "singleton",
@@ -1410,6 +1418,7 @@ def assert_test_retention_schema_delta(after):
         assert "row_security TO 'off'" in function["definition"]
         assert function["grants"] == [["OWNER", "EXECUTE", False]]
     authority_names = {
+        "account_billing_stripe_mode_immutable",
         "account_test_table_name",
         "account_lock_test_financial_sources",
         "account_test_read_row",

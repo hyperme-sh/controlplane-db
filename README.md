@@ -359,3 +359,12 @@ Downgrade restores the exact saved native guard definitions. Disable TEST mode
 first, restore the payment-owner guards, then remove platform TEST support;
 removing the platform helper while owner guards still reference it is refused.
 No deployed database or provider is changed by package qualification.
+
+Stripe-backed billing requires independently recorded provider mode. Additive
+`platform_0082_stripe_mode` stores nullable `stripe_livemode` without expanding the
+legacy ORM mapping. Trusted payment adapters record only actual validated provider
+responses or original billing provenance; NULL remains unknown. Once recorded,
+the native trigger forbids changing or clearing the mode. TEST erasure rejects
+live or unproven Stripe IDs/metadata regardless of the TEST database marker.
+No provider IDs, process settings or caller metadata are guessed as sandbox.
+Legacy databases without the native column retain their existing payment writes.
