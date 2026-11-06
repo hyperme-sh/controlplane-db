@@ -1457,3 +1457,44 @@ def test_database_guard_refuses_unproven_stripe_mode(migrated_postgres, data):
                 c.execute(text("SELECT public.account_test_check_row('billing_records',CAST(:d AS jsonb))"), {'d':json.dumps(data)})
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize('metadata', [
+    {'payment_rail':'stripe_stablecoin'},
+    {'pending_refund':{'stripe_refund_id':'re_live'}},
+    {'history':[{'nested':{'stripe_session_id':'cs_live'}}]},
+])
+@pytest.mark.parametrize('mode', [None, True, False])
+def test_nested_stripe_markers_require_immutable_mode(migrated_postgres, metadata, mode):
+    import json
+    engine=create_engine(migrated_postgres)
+    try:
+        def check():
+            with engine.begin() as c:
+                c.execute(text("SELECT public.account_test_check_row('billing_records',CAST(:d AS jsonb))"),
+                          {'d':json.dumps({'metadata':metadata,'stripe_livemode':mode})})
+        if mode is False: check()
+        else:
+            with pytest.raises(DBAPIError,match='Immutable Stripe sandbox provenance'): check()
+    finally: engine.dispose()
+
+
+@pytest.mark.parametrize('parent', ['missing','unknown','live','wrong_session','wrong_tenant','sandbox'])
+def test_stripe_lease_requires_matching_original_sandbox_billing(migrated_postgres,parent):
+    import json,uuid
+    engine=create_engine(migrated_postgres)
+    try:
+        with engine.begin() as c:
+            _,_,_,payment=seed_closed_payer(c)
+            c.execute(text("UPDATE billing_records SET stripe_session_id='cs_original',stripe_livemode=:mode WHERE id=:id"),
+                      {'mode':None if parent=='unknown' else parent=='live','id':payment})
+        data={'stripe_session_id':'cs_other' if parent=='wrong_session' else 'cs_original',
+              'billing_record_id':None if parent=='missing' else str(payment),
+              'tenant_id':str(uuid.uuid4()) if parent=='wrong_tenant' else None}
+        def check():
+            with engine.begin() as c:
+                c.execute(text("SELECT public.account_test_check_row('hypermesh_leases',CAST(:d AS jsonb))"),{'d':json.dumps(data)})
+        if parent=='sandbox': check()
+        else:
+            with pytest.raises(DBAPIError,match='Original Stripe lease sandbox provenance'):check()
+    finally:engine.dispose()
