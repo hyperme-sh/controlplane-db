@@ -359,3 +359,9 @@ Downgrade restores the exact saved native guard definitions. Disable TEST mode
 first, restore the payment-owner guards, then remove platform TEST support;
 removing the platform helper while owner guards still reference it is refused.
 No deployed database or provider is changed by package qualification.
+
+Stripe-bearing billing records remain ineligible for TEST financial erasure: their
+customer/subscription/session identifiers do not prove sandbox mode. TEST policy
+and mutable metadata cannot waive this refusal. Immutable provider-mode evidence
+from the billing owner is a prerequisite to future support; none is inferred or
+backfilled by this migration.

@@ -81,6 +81,18 @@ BEGIN
   IF (p_data ? 'livemode' AND p_data->'livemode' IS DISTINCT FROM 'false'::jsonb)
     OR (p_data ? 'chain_id' AND p_data->>'chain_id' IS DISTINCT FROM '84532') THEN
     RAISE EXCEPTION 'Live or unsupported financial network is not TEST data' USING ERRCODE='42501'; END IF;
+  -- Stripe identifiers carry no trustworthy mode discriminator. Neither a TEST
+  -- database nor mutable metadata can establish sandbox provenance. Retain
+  -- these rows until the billing owner supplies immutable provider evidence.
+  IF p_name='billing_records' AND (
+    p_data->>'stripe_customer_id' IS NOT NULL
+    OR p_data->>'stripe_subscription_id' IS NOT NULL
+    OR p_data->>'stripe_session_id' IS NOT NULL
+    OR p_data->>'payment_type' LIKE 'stripe%'
+    OR EXISTS(SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(p_data->'metadata')='object'
+      THEN p_data->'metadata' ELSE '{}'::jsonb END) k WHERE k LIKE 'stripe%')
+  ) THEN
+    RAISE EXCEPTION 'Immutable Stripe sandbox provenance required' USING ERRCODE='42501'; END IF;
   IF p_name='connect_access_grants' THEN
     SELECT r.livemode INTO mode FROM public.connect_access_grants g
       JOIN public.connect_access_states s USING(tenant_id,host_org_id)
