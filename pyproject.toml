@@ -18,9 +18,29 @@ dependencies = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/controlplane_db"]
+# Frozen histories stay in the checkout for qualification. Shared wheels do not
+# receive them, and the checkout-only runner is not a runtime install surface.
+exclude = [
+    "src/controlplane_db/alembic/**",
+    "src/controlplane_db/alembic.ini",
+    "src/controlplane_db/migration_chains/**",
+    "src/controlplane_db/migrations.py",
+    "src/controlplane_db/startup.py",
+    "src/controlplane_db/_share_lookup_hardening.py",
+    "src/controlplane_db/test_retention.py",
+]
 
 [tool.hatch.build.targets.sdist]
-include = ["LICENSE", "src", "tests", "scripts", "README.md", "AGENTS.md", "alembic.ini", "pyproject.toml", "uv.lock"]
+include = ["LICENSE", "src", "tests", "scripts", "README.md", "AGENTS.md", "pyproject.toml", "uv.lock"]
+exclude = [
+    "src/controlplane_db/alembic/**",
+    "src/controlplane_db/alembic.ini",
+    "src/controlplane_db/migration_chains/**",
+    "src/controlplane_db/migrations.py",
+    "src/controlplane_db/startup.py",
+    "src/controlplane_db/_share_lookup_hardening.py",
+    "src/controlplane_db/test_retention.py",
+]
 
 [dependency-groups]
 dev = [

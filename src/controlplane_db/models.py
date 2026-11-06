@@ -649,34 +649,10 @@ class UserMagicLink(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-class StripeSettings(Base):
-    __tablename__ = "stripe_settings"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
-    )
-    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True
-    )
-    default_currency: Mapped[str] = mapped_column(String(8), default="eur", nullable=False)
-    stripe_webhook_secret: Mapped[str] = mapped_column(Text, nullable=False)
-    mode: Mapped[str] = mapped_column(String(32), default="recurring", nullable=False)
-    trial_period_days: Mapped[int] = mapped_column(Integer, default=14, nullable=False)
-    stripe_secret_key: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class BillingRecord(Base):
     __tablename__ = "billing_records"
-    __table_args__ = (
-        Index("ix_billing_tenant_sub", "tenant_id", "stripe_subscription_id"),
-        Index("ix_billing_session", "stripe_session_id"),
-    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -698,9 +674,6 @@ class BillingRecord(Base):
     payment_type: Mapped[str] = mapped_column(String(64), nullable=False)
     currency: Mapped[str] = mapped_column(String(8), nullable=False)
     amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    stripe_session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     product_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     price_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(64), default="pending", nullable=False)

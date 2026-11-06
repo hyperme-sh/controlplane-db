@@ -11,10 +11,9 @@ from sqlalchemy import create_engine, text
 from alembic.util.exc import CommandError
 from alembic import command
 from alembic.config import Config
-from testcontainers.postgres import PostgresContainer
 
 from controlplane_db import migrations
-from migration_test_support import normalize_sync_sqlalchemy_url, run_alembic_upgrade, alembic_ini_path
+from migration_test_support import isolated_postgres, normalize_sync_sqlalchemy_url, run_alembic_upgrade, alembic_ini_path
 from schema_snapshot import schema_snapshot
 
 pytestmark = pytest.mark.integration
@@ -41,19 +40,23 @@ def execute(url, sql):
 
 @pytest.fixture(scope='module')
 def databases():
-    with PostgresContainer('postgres:17@sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1', username='migration', password='local-test-only', dbname='source') as pg:
-        url = normalize_sync_sqlalchemy_url(pg.get_connection_url())
+    with isolated_postgres() as url:
         execute(url, 'CREATE ROLE controlplane; CREATE ROLE controlplane_app NOBYPASSRLS')
         run_alembic_upgrade(url)
         # No source connections may remain when copying its schema and data.
         admin = create_engine(url, isolation_level='AUTOCOMMIT')
+        stem = url.rsplit('/', 1)[-1]
+        clones = ('fresh', 'stamped', 'wrong_head', 'isolated', 'rollback', 'no_roles', 'reload', 'unversioned', 'reload_old', 'reload_fresh', 'reload_failure', 'marketplace_owners', 'marketplace_legacy', 'marketplace_fresh', 'reload_empty')
+        from_source = {'stamped', 'rollback', 'reload', 'reload_failure', 'marketplace_owners', 'marketplace_legacy'}
         with admin.connect() as connection:
-            for name in ('fresh', 'stamped', 'wrong_head', 'isolated', 'rollback', 'no_roles', 'reload', 'unversioned', 'reload_old', 'reload_fresh', 'reload_failure', 'marketplace_owners', 'marketplace_legacy', 'marketplace_fresh', 'reload_empty'):
-                template = 'source' if name in ('stamped', 'rollback', 'reload', 'reload_failure', 'marketplace_owners', 'marketplace_legacy') else 'template0'
-                connection.exec_driver_sql(f'CREATE DATABASE "{name}" TEMPLATE "{template}"')
+            for name in clones:
+                template = stem if name in from_source else 'template0'
+                connection.exec_driver_sql(f'CREATE DATABASE "{stem}_{name}" TEMPLATE "{template}"')
         admin.dispose()
-        yield {name: url.rsplit('/', 1)[0] + '/' + name for name in
-               ('source', 'fresh', 'stamped', 'wrong_head', 'isolated', 'rollback', 'no_roles', 'reload', 'unversioned', 'reload_old', 'reload_fresh', 'reload_failure', 'marketplace_owners', 'marketplace_legacy', 'marketplace_fresh', 'reload_empty')}
+        base = url.rsplit('/', 1)[0]
+        yielded = {'source': url}
+        yielded.update({name: f'{base}/{stem}_{name}' for name in clones})
+        yield yielded
 
 
 def test_fresh_baselines_match_every_0053_database_object(databases):
@@ -1049,8 +1052,7 @@ def assert_source_subscription_delta(before, after):
 def test_payout_subject_forward_migration_preserves_receipt_and_refuses_lossy_downgrade():
     from sqlalchemy.exc import IntegrityError
 
-    with PostgresContainer("postgres:17@sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1") as pg:
-        url = normalize_sync_sqlalchemy_url(pg.get_connection_url())
+    with isolated_postgres() as url:
         migrations.upgrade(url, baseline_only=True)
         engine = create_engine(url)
         tenant, org = uuid.uuid4(), uuid.uuid4()
@@ -1296,8 +1298,7 @@ def assert_control_proof_schema_delta(after):
 
 @pytest.mark.parametrize("tenant_context", [None, "another_tenant"])
 def test_closure_downgrade_cannot_hide_requests_under_forced_rls(tenant_context):
-    with PostgresContainer("postgres:17@sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1") as pg:
-        url = normalize_sync_sqlalchemy_url(pg.get_connection_url())
+    with isolated_postgres() as url:
         migrations.upgrade(url, chains=["platform"], baseline_only=True)
         engine = create_engine(url)
         tenant = uuid.uuid4()
@@ -1338,8 +1339,7 @@ def test_closure_downgrade_cannot_hide_requests_under_forced_rls(tenant_context)
 
 @pytest.mark.parametrize('record_kind', ['identity', 'keys'])
 def test_retirement_downgrade_preserves_recorded_tombstones(record_kind):
-    with PostgresContainer('postgres:17@sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1') as pg:
-        url = normalize_sync_sqlalchemy_url(pg.get_connection_url())
+    with isolated_postgres() as url:
         migrations.upgrade(url, chains=['platform'], baseline_only=True)
         engine = create_engine(url)
         try:

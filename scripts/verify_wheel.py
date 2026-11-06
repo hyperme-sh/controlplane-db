@@ -2,10 +2,13 @@
 from pathlib import Path
 import sys
 import zipfile
+from runtime_surface import is_wheel_excluded
 root = Path(__file__).resolve().parents[1]
-expected = {p.relative_to(root / 'src').as_posix(): p.read_bytes()
-            for p in (root / 'src').rglob('*')
-            if p.is_file() and '__pycache__' not in p.parts}
+expected = {name: path.read_bytes()
+            for path in (root / 'src').rglob('*')
+            if path.is_file() and '__pycache__' not in path.parts
+            for name in (path.relative_to(root / 'src').as_posix(),)
+            if not is_wheel_excluded(name)}
 resource = root / 'proto/spanopticon/v1/contractecho.proto'
 if resource.exists():
     expected['controlplane_proto_data/contractecho.proto'] = resource.read_bytes()

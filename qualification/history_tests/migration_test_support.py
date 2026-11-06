@@ -9,9 +9,19 @@ from alembic.config import Config
 
 
 def alembic_ini_path() -> Path:
-    """Use this installed database owner's frozen historical migration resources."""
+    """Use this database owner's frozen historical migration resources.
+
+    Shared wheels omit the file. Qualification reads it from the checkout when
+    the installed package does not carry it.
+    """
     from importlib.resources import files
-    return Path(str(files("controlplane_db") / "alembic.ini"))
+    packaged = Path(str(files("controlplane_db") / "alembic.ini"))
+    if packaged.is_file():
+        return packaged
+    checkout = Path(__file__).resolve().parents[2] / "src" / "controlplane_db" / "alembic.ini"
+    if checkout.is_file():
+        return checkout
+    raise FileNotFoundError(packaged)
 
 
 def normalize_sync_sqlalchemy_url(url: str) -> str:
@@ -169,3 +179,137 @@ def alembic_upgrade(sync_url: str, revision: str = "head") -> None:
 def alembic_downgrade(sync_url: str, revision: str) -> None:
     """Downgrade ``sync_url`` to ``revision`` without leaking ``DATABASE_URL``."""
     _alembic(sync_url, "downgrade", revision)
+
+
+def _pg_bin(name: str) -> str | None:
+    import shutil
+    found = shutil.which(name)
+    if found:
+        return found
+    matches = sorted(Path("/usr/lib/postgresql").glob(f"*/bin/{name}"))
+    return str(matches[-1]) if matches else None
+
+
+def _docker_available() -> bool:
+    import shutil
+    import subprocess
+    if shutil.which("docker") is None:
+        return False
+    try:
+        completed = subprocess.run(
+            ["docker", "info"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return completed.returncode == 0
+
+
+def isolated_postgres():
+    """Yield a sync URL for one disposable PostgreSQL database.
+
+    Docker keeps the original pinned testcontainer. Otherwise a private
+    cluster (or ``TEST_DATABASE_URL``) isolates roles from the shared package
+    server. Created databases and roles are removed with that server.
+    """
+    from contextlib import contextmanager
+    import socket
+    import subprocess
+    import tempfile
+    import time
+    import uuid
+
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.engine import make_url
+
+    @contextmanager
+    def _from_container():
+        from testcontainers.postgres import PostgresContainer
+        image = "postgres:17@sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1"
+        with PostgresContainer(image, username="migration", password="local-test-only", dbname="source") as pg:
+            yield normalize_sync_sqlalchemy_url(pg.get_connection_url())
+
+    @contextmanager
+    def _from_cluster():
+        data_dir = tempfile.TemporaryDirectory()
+        try:
+            data = Path(data_dir.name) / "data"
+            sock = socket.socket()
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+            sock.close()
+            initdb = _pg_bin("initdb")
+            pg_ctl = _pg_bin("pg_ctl")
+            pg_isready = _pg_bin("pg_isready")
+            subprocess.check_call(
+                [initdb, "-D", str(data), "-U", "migration", "--auth-local=trust",
+                 "--auth-host=trust", "--no-instructions", "--encoding=UTF8", "--locale=C"],
+                stdout=subprocess.DEVNULL,
+            )
+            log = Path(data_dir.name) / "server.log"
+            subprocess.check_call([
+                pg_ctl, "-D", str(data), "-l", str(log),
+                "-o", f"-p {port} -k {data_dir.name} -c listen_addresses=127.0.0.1",
+                "start",
+            ])
+            try:
+                for _ in range(50):
+                    if subprocess.run(
+                        [pg_isready, "-h", "127.0.0.1", "-p", str(port), "-U", "migration"],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    ).returncode == 0:
+                        break
+                    time.sleep(0.1)
+                else:
+                    raise RuntimeError(log.read_text()[-4000:])
+                yield f"postgresql+psycopg://migration@127.0.0.1:{port}/postgres"
+            finally:
+                subprocess.call([pg_ctl, "-D", str(data), "stop", "-m", "immediate"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        finally:
+            data_dir.cleanup()
+
+    @contextmanager
+    def _from_server(raw: str):
+        admin_url = make_url(normalize_sync_sqlalchemy_url(raw))
+        name = "hist_" + uuid.uuid4().hex
+        admin = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+        try:
+            with admin.connect() as connection:
+                before_dbs = set(connection.execute(text(
+                    "SELECT datname FROM pg_database WHERE NOT datistemplate")).scalars())
+                before_roles = set(connection.execute(text("SELECT rolname FROM pg_roles")).scalars())
+                connection.exec_driver_sql(f'CREATE DATABASE "{name}"')
+            try:
+                yield admin_url.set(database=name).render_as_string(hide_password=False)
+            finally:
+                with admin.connect() as connection:
+                    created = set(connection.execute(text(
+                        "SELECT datname FROM pg_database WHERE NOT datistemplate")).scalars()) - before_dbs
+                    for database in sorted(created):
+                        connection.exec_driver_sql(f'DROP DATABASE IF EXISTS "{database}" WITH (FORCE)')
+                    for role in sorted(set(connection.execute(text(
+                            "SELECT rolname FROM pg_roles")).scalars()) - before_roles):
+                        quoted = role.replace('"', '""')
+                        connection.exec_driver_sql(f'DROP OWNED BY "{quoted}"')
+                        connection.exec_driver_sql(f'DROP ROLE IF EXISTS "{quoted}"')
+        finally:
+            admin.dispose()
+
+    @contextmanager
+    def _open():
+        if _docker_available():
+            with _from_container() as url:
+                yield url
+        elif _pg_bin("initdb") and _pg_bin("pg_ctl") and _pg_bin("pg_isready"):
+            with _from_cluster() as url:
+                yield url
+        elif os.environ.get("TEST_DATABASE_URL"):
+            with _from_server(os.environ["TEST_DATABASE_URL"]) as url:
+                yield url
+        else:
+            raise RuntimeError("historical PostgreSQL isolation needs Docker, initdb, or TEST_DATABASE_URL")
+
+    return _open()
