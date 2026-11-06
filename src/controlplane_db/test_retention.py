@@ -30,14 +30,33 @@ def _sql(connection, statement, **params):
     return connection.execute(text(statement), params)
 
 
-def _mentions(value, identities):
-    if isinstance(value, str):
-        return value in identities
-    if isinstance(value, list):
-        return any(_mentions(item, identities) for item in value)
-    if isinstance(value, dict):
-        return any(_mentions(item, identities) for item in value.values())
-    return False
+def financial_tables():
+    """Known financial source names; grants confer reads, never caller DML."""
+    registry = json.loads(
+        Path(__file__)
+        .with_name("migration_chains")
+        .joinpath("manifest.json")
+        .read_text()
+    )
+    return tuple(
+        sorted(
+            set(registry["chains"]["payment_service"]["tables"])
+            | {
+                "billing_records",
+                "hypermesh_leases",
+                "hypermesh_orders",
+                "hypermesh_payouts",
+                "hypermesh_fills",
+                "connect_reversal_exposure_observations",
+                "hypermesh_jobs",
+                "hypermesh_tunnels",
+                "hypermesh_tickets",
+                "host_organization_bindings",
+                "ai_agent_entitlements",
+                "marketplace_purchases",
+            }
+        )
+    )
 
 
 def _scope_identities(subject, life, scopes):
@@ -223,15 +242,16 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
         if expanded == reachable:
             break
         reachable = expanded
-    # Block source mutation while collecting the complete FK graph. Bound the
-    # lock/statement waits in the coordinator before entering this helper.
+    # Only the installed definer can lock/write financial sources. The
+    # coordinator's role has SELECT and narrowly scoped function execution.
     _sql(
         connection,
-        "LOCK TABLE "
-        + ",".join(_table(relations[oid]) for oid in sorted(reachable))
-        + " IN SHARE ROW EXCLUSIVE MODE",
+        "SELECT public.account_lock_test_financial_sources(:s,:at)",
+        s=subject,
+        at=closed_at,
     )
     targets = {}
+    parents = {}
     more_roots = False
     pending = []
     dependencies = defaultdict(set)
@@ -275,9 +295,7 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
             values = (
                 local_users | local_aliases
                 if field == "renter_user_id"
-                else local_aliases
-                if field == "owner_sub"
-                else local_users
+                else local_aliases if field == "owner_sub" else local_users
             )
             owner = (
                 f"to_jsonb(t)->>'{field}'=ANY(CAST(:scope_values_{index} AS text[]))"
@@ -332,6 +350,17 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
                 more_roots = True
                 break
             if name == "billing_records":
+                if _sql(
+                    connection,
+                    """SELECT EXISTS(SELECT 1 FROM public.account_financial_source_bindings b
+                    WHERE b.owner='billing' AND b.kind='payment' AND b.resource=:resource
+                      AND b.tenant_id IS NOT DISTINCT FROM CAST(:tenant AS uuid)
+                      AND b.subject<>:subject)""",
+                    resource=str(data["id"]),
+                    tenant=data.get("tenant_id"),
+                    subject=subject,
+                ).scalar_one():
+                    raise TestRetentionUnavailable("Shared native billing ownership")
                 user, actor = data.get("user_id"), metadata.get("actor_sub")
                 if (user is not None and user not in local_users) or (
                     actor is not None and actor not in local_aliases
@@ -426,6 +455,7 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
                             "TEST financial dependency batch exceeds limit"
                         )
                     targets[key] = (child_data, depth + 1)
+                    parents[key] = (parent, locator)
                     pending.append(key)
     # Source table locks exclude concurrent writers; exact-image capabilities
     # precede every delete without granting source UPDATE. Original
@@ -476,14 +506,16 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
         ).scalar_one()
         if current != data:
             raise TestRetentionUnavailable("TEST financial source changed")
+        parent = parents.get((oid, locator))
         _sql(
             connection,
-            f"""INSERT INTO public.account_test_delete_capabilities
-          SELECT pg_current_xact_id()::text,:oid,sha256(convert_to(to_jsonb(t)::text,'UTF8'))
-          FROM {_table(relations[oid])} t WHERE ctid=CAST(CAST(:tid AS text) AS tid)
-          ON CONFLICT DO NOTHING""",
+            "SELECT public.account_stage_test_delete(:s,:at,CAST(:oid AS oid),:tid,CAST(:parent AS oid),:parent_tid)",
+            s=subject,
+            at=closed_at,
             oid=oid,
             tid=locator,
+            parent=parent[0] if parent else None,
+            parent_tid=parent[1] if parent else None,
         )
     counts = defaultdict(int)
     remaining = set(targets)
@@ -494,69 +526,22 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
                 "Cyclic financial dependency requires native owner reconciliation"
             )
         for oid, locator in sorted(leaves):
-            result = _sql(
+            deleted = _sql(
                 connection,
-                f"DELETE FROM {_table(relations[oid])} WHERE ctid=CAST(CAST(:tid AS text) AS tid)",
+                "SELECT public.account_delete_test_financial_row(:s,:at,CAST(:oid AS oid),:tid)",
+                s=subject,
+                at=closed_at,
+                oid=oid,
                 tid=locator,
-            )
-            counts[relations[oid]] += result.rowcount
+            ).scalar_one()
+            counts[relations[oid]] += deleted
             remaining.remove((oid, locator))
-    _sql(
-        connection,
-        "DELETE FROM public.account_test_delete_capabilities WHERE transaction_id=pg_current_xact_id()::text",
-    )
-    # Original source bindings must be reconciled against live rows before any
-    # completion claim. A failed/incomplete owner is never treated as empty.
-    bindings = _sql(
-        connection,
-        "SELECT tenant_id,owner,kind,resource FROM public.account_financial_source_bindings WHERE subject=:s ORDER BY owner,kind,resource LIMIT 1000",
-        s=subject,
-    ).all()
-    for tenant, owner, kind, resource in bindings:
-        name = "billing_records" if owner == "billing" and kind == "payment" else kind
-        if name not in allowed_names or name not in by_name:
-            raise TestRetentionUnavailable("Unrecognized native financial source")
-        identity = (
-            "(to_jsonb(t)->>'host_org_id')||':'||(to_jsonb(t)->>'chain_id')"
-            if name == "host_payout_addresses"
-            else "coalesce(to_jsonb(t)->>'id',to_jsonb(t)->>'grant_id',to_jsonb(t)->>'revision_id',to_jsonb(t)->>'account_key',to_jsonb(t)->>'host_org_id',to_jsonb(t)->>'order_id',to_jsonb(t)->>'lease_id',to_jsonb(t)->>'organization_id')"
-        )
-        rows = (
-            _sql(
-                connection,
-                f"SELECT to_jsonb(t) FROM {_table(name)} t WHERE {identity}=:r AND to_jsonb(t)->>'tenant_id' IS NOT DISTINCT FROM CAST(:tenant AS text)",
-                r=resource,
-                tenant=str(tenant) if tenant else None,
-            )
-            .scalars()
-            .all()
-        )
-        if rows and name == "payer_mismatch_accounts":
-            # The canonical identity is its original binding and hashed key,
-            # not a plaintext subject inside the risk row. A bounded batch may
-            # not detach this proof while the actual row still exists.
-            continue
-        if any(_mentions(row, identities) for row in rows):
-            continue
-        # Do not erase company records through an indirect former membership.
-        # Once no native customer reference remains, unlink only this closure's
-        # obsolete association; other parties' bindings and rows remain intact.
-        subject_clause = "subject=:s AND " if rows else ""
-        _sql(
-            connection,
-            "DELETE FROM public.account_financial_source_bindings WHERE "
-            + subject_clause
-            + "tenant_id IS NOT DISTINCT FROM CAST(:t AS uuid) AND owner=:o AND kind=:k AND resource=:r",
-            s=subject,
-            t=str(tenant) if tenant else None,
-            o=owner,
-            k=kind,
-            r=resource,
-        )
+    _sql(connection, "SELECT public.account_clear_test_delete_capabilities()")
     remaining_bindings = _sql(
         connection,
-        "SELECT count(*) FROM public.account_financial_source_bindings WHERE subject=:s",
+        "SELECT public.account_reconcile_test_financial_bindings(:s,:at)",
         s=subject,
+        at=closed_at,
     ).scalar_one()
     return {
         "complete": remaining_bindings == 0 and not more_roots,

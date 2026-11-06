@@ -181,14 +181,15 @@
     "controlplane_db/migration_chains/platform/versions/0077_payer_risk_gc.py": "76169fd6eb2e4d96e19b098388d488f71c8072e7b060cf2b9ff5b047350927ab",
     "controlplane_db/migration_chains/platform/versions/0078_empty_financial_completion.py": "34665bb485a87dd82aa315d09a7288b324a4fce379f76ea7549d41b0f8de3903",
     "controlplane_db/migration_chains/platform/versions/0079_closure_share_lookup_merge.py": "39bf17b3777fdae90d4a96bc0fd33e8709f606b49421cbce1c7545b19b1f031f",
-    "controlplane_db/migration_chains/platform/versions/0080_test_retention.py": "8e3b6fb76593cfee567892642025d6f59ab437ed07b568f22d35fe8b75706652",
+    "controlplane_db/migration_chains/platform/versions/0080_test_retention.py": "6e3a7eda830bd6d8284910a900ede9861e9aa12166059c0687d90c0875ca80d2",
     "controlplane_db/migration_chains/platform/versions/baseline.sql": "98f19090af47422c34cee6da961a74dc1f4aa0386573a6f2e2343680b88d2ebc",
+    "controlplane_db/migration_chains/platform/versions/test_retention_authority.sql": "34c6387c2985fb62c132d5a5a48310c958f50e23cf7554ffd776ea69ae369513",
     "controlplane_db/migrations.py": "090c4b2604d681b3142bd47521b49ae6eb40e6fcbcf86792184dde2d4321bb90",
     "controlplane_db/models.py": "4b9ff8ef4466aba7f9df30cfab33d17cc5535c8a6b17ef05e9655efe0dd18175",
     "controlplane_db/payment_store.py": "e8ddb891bdc2b2fed7f2c9db1838e7903ba2e9eb18b7ca41cee86044b88c95a3",
     "controlplane_db/session.py": "cab678c5e27791377ebd4ff5885f557c088874fdd44c6bb3ff4e4f94a7dbf83a",
     "controlplane_db/startup.py": "9936b0a2cc861233f28025005a58105beb0444fd2526dd666ddb48553fa46268",
-    "controlplane_db/test_retention.py": "1457a5c101d874fe2889e7a5b0765d96929766dac01e71d932895a64fc7b4c0e"
+    "controlplane_db/test_retention.py": "575439cfaf770a1665e50046cf931557a7a90570caf6215570edeaa11fc92aac"
   },
   "public_root_exports": [
     "Base",

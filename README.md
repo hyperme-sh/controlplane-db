@@ -328,13 +328,25 @@ or settlements occur in this helper. Physical model/storage cleanup still needs
 its own owner acknowledgments.
 
 PUBLIC receives no access to mode, capabilities or original guard definitions,
-and no execution of the new private functions. The private TEST coordinator needs
-execution of `account_test_data_enabled()`, `account_lock_test_data_policy()` and
-`account_test_row_delete_allowed(oid,jsonb)`, plus SELECT/INSERT/DELETE on the
-capability table and the appropriate SELECT/DELETE grants on its selected native
-financial tables. It does not need UPDATE on the policy table. The public service
-rejects grants on all four private TEST support tables. Production workers need
-only the read-only mode check in addition to their existing authority.
+and no execution of the private functions. The private TEST coordinator receives
+SELECT on financial sources and native bindings, plus execution of
+`account_lock_test_financial_sources`, `account_stage_test_delete`,
+`account_delete_test_financial_row`, `account_clear_test_delete_capabilities`
+and `account_reconcile_test_financial_bindings`. It has no financial source or
+binding writes and no capability-table access. Production workers need only the
+read-only mode check in addition to their existing authority.
+
+Database-owned routines read actual rows under native locks, repeat original
+payer/tenant and sandbox ancestry checks, and bind each capability to its
+subject, closure time, row image and current transaction. Dependent rows need an
+authorized native parent and an actual FK or explicit tenant-bound relationship.
+Even a compromised coordinator cannot insert capabilities or delete financial
+rows directly. The definer refuses remaining children before deletion, including
+CASCADE relationships to unknown physical owners. Source bindings are reconciled
+against live rows inside the same native authority. All new routines pin catalog
+lookup and put temporary schemas last. The public service rejects access to the
+private support state. Non-superuser worker startup rejects stale direct financial
+or capability privileges.
 
 Downgrade restores the exact saved native guard definitions. Disable TEST mode
 first, restore the payment-owner guards, then remove platform TEST support;
