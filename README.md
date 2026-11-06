@@ -372,3 +372,10 @@ Legacy databases without the native column retain their existing payment writes.
 Existing Stripe-bearing rows without independently verified provider mode remain
 ineligible for TEST erasure. The payment owner may record actual validated
 provider observations; no migration guesses or backfills their sandbox status.
+
+Forward `platform_0083_stripe_scope` also requires original same-tenant billing
+provenance for Stripe-bearing leases, including exact saved session matching.
+Missing, live, unproven or mismatched links cannot authorize a lease root.
+Stripe classification traverses canonical metadata values and nested object/array
+keys. TEST workers require this current native provenance installation before
+claiming work; an older installed backend cannot silently keep a weaker guard.

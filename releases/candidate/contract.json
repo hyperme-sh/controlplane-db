@@ -184,6 +184,7 @@
     "controlplane_db/migration_chains/platform/versions/0080_test_retention.py": "8e3b6fb76593cfee567892642025d6f59ab437ed07b568f22d35fe8b75706652",
     "controlplane_db/migration_chains/platform/versions/0081_test_retention_authority.py": "d8542d4f6ef8f025d742bc88fe93bf847939985e102b73c81100c1cc4dfc7d18",
     "controlplane_db/migration_chains/platform/versions/0082_billing_stripe_mode.py": "58a8795bbe8d5e60c5b25bd11116b32f96a704f9f799a4405457ab13f6b040c3",
+    "controlplane_db/migration_chains/platform/versions/0083_stripe_scope.py": "95c807568097bb1e7fcc62971da1d232a56732d7ed0a3d7aea66f3d8b9345765",
     "controlplane_db/migration_chains/platform/versions/baseline.sql": "98f19090af47422c34cee6da961a74dc1f4aa0386573a6f2e2343680b88d2ebc",
     "controlplane_db/migration_chains/platform/versions/test_retention_authority.sql": "0c47d26e8531a85d6bda6a4c0088290e49183809ffe227e858e51f78cd854b8e",
     "controlplane_db/migrations.py": "090c4b2604d681b3142bd47521b49ae6eb40e6fcbcf86792184dde2d4321bb90",

@@ -1418,6 +1418,7 @@ def assert_test_retention_schema_delta(after):
         assert "row_security TO 'off'" in function["definition"]
         assert function["grants"] == [["OWNER", "EXECUTE", False]]
     authority_names = {
+        "account_test_stripe_metadata",
         "account_billing_stripe_mode_immutable",
         "account_test_table_name",
         "account_lock_test_financial_sources",

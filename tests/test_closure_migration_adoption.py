@@ -40,7 +40,7 @@ def test_upgrade_reconciles_hardening_and_closure_and_preserves_worker_preflight
                     connection.execute(text("INSERT INTO tenants(id,name,is_active) VALUES(:id,'retained',true)"), {'id': uuid.uuid4()})
             migrations.upgrade(url)
             assert migrations.current_heads(url) == migrations.chain_heads()
-            assert migrations.chain_heads()['platform'] == 'platform_0082_stripe_mode'
+            assert migrations.chain_heads()['platform'] == 'platform_0083_stripe_scope'
             with engine.begin() as connection:
                 connection.execute(text('SELECT public.account_check_closure_worker_installation()'))
                 assert connection.scalar(text("SELECT to_regclass('public.identity_retirements') IS NOT NULL"))

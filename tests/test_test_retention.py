@@ -1457,3 +1457,67 @@ def test_database_guard_refuses_unproven_stripe_mode(migrated_postgres, data):
                 c.execute(text("SELECT public.account_test_check_row('billing_records',CAST(:d AS jsonb))"), {'d':json.dumps(data)})
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize('metadata',[
+    {'payment_rail':'stripe_stablecoin'},
+    {'pending_refund':{'stripe_refund_id':'re_fixture'}},
+    {'nested':[{'provider':'stripe'}]},
+    {'nested':{'StripePaymentIntentId':'pi_fixture'}},
+])
+@pytest.mark.parametrize('livemode',[None,False])
+def test_nested_stripe_metadata_requires_real_sandbox_provenance(migrated_postgres,metadata,livemode):
+    import json
+    from controlplane_db.test_retention import purge_test_finances
+    engine=create_engine(migrated_postgres)
+    def provider(c,subject,user,payment,tenant):
+        c.execute(text('UPDATE billing_records SET metadata=metadata||CAST(:m AS jsonb),stripe_livemode=:mode WHERE id=:p'),{'m':json.dumps(metadata),'mode':livemode,'p':payment})
+    try:
+        with engine.begin() as c:
+            subject,at,user,payment=seed_closed_payer(c,before_close=provider)
+            enable_test_policy(c)
+        if livemode is False:
+            with engine.begin() as c:
+                assert purge_test_finances(c,subject,at)['tables']=={'billing_records':1}
+        else:
+            with pytest.raises(DBAPIError,match='Immutable Stripe sandbox provenance'):
+                with engine.begin() as c:
+                    purge_test_finances(c,subject,at)
+            with engine.begin() as c:
+                assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'),{'p':payment})==1
+                assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities'))==0
+    finally:engine.dispose()
+
+
+@pytest.mark.parametrize('case',['unbound','missing','unknown','live','mismatch','sandbox','local'])
+def test_stripe_lease_roots_require_original_linked_billing_provenance(migrated_postgres,case):
+    import uuid
+    from controlplane_db.test_retention import purge_test_finances
+    engine=create_engine(migrated_postgres)
+    lease,host,tenant=uuid.uuid4(),uuid.uuid4(),uuid.uuid4()
+    def lease_source(c,subject,user,payment,tenant):
+        mode=None if case in ['unknown','local'] else (True if case=='live' else False)
+        session=None if case=='local' else 'cs_original_fixture'
+        c.execute(text('UPDATE billing_records SET stripe_livemode=:mode,stripe_session_id=:session WHERE id=:p'),{'mode':mode,'session':session,'p':payment})
+        pointer=None if case=='unbound' else uuid.uuid4() if case=='missing' else payment
+        c.execute(text("INSERT INTO hypermesh_leases(id,tenant_id,kind,status,renter_user_id,class_id,host_org_id,billing_record_id,stripe_session_id,reserved_hours,created_at,token_count,loaded_hours,purpose) VALUES(:l,:t,'p1_hardware','active',:u,'test-class',:h,:p,:session,1,now(),0,0,'renter')"),
+                  {'l':lease,'t':tenant,'u':str(user),'h':host,'p':pointer,'session':'cs_other_fixture' if case=='mismatch' else session})
+    try:
+        with engine.begin() as c:
+            subject,at,user,payment=seed_closed_payer(c,tenant=tenant,before_close=lease_source)
+            enable_test_policy(c)
+        if case in ['sandbox','local']:
+            with engine.begin() as c:
+                assert purge_test_finances(c,subject,at)['tables']=={'billing_records':1,'hypermesh_leases':1}
+        else:
+            # Bypass planner/root ordering and directly ask the native issuer to
+            # authorize the lease: a missing/foreign/unproven billing link fails.
+            with pytest.raises(DBAPIError,match='provenance required'):
+                with engine.begin() as c:
+                    oid,tid=c.execute(text('SELECT tableoid,ctid::text FROM hypermesh_leases WHERE id=:l'),{'l':lease}).one()
+                    c.execute(text('SELECT public.account_stage_test_delete(:s,:at,CAST(:oid AS oid),:tid,NULL,NULL)'),{'s':subject,'at':at,'oid':oid,'tid':tid})
+            with engine.begin() as c:
+                assert c.scalar(text('SELECT count(*) FROM hypermesh_leases WHERE id=:l'),{'l':lease})==1
+                assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'),{'p':payment})==1
+                assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities'))==0
+    finally:engine.dispose()
