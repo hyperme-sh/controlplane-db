@@ -2,7 +2,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 unset PYTHONPATH UV_NO_SYNC
-python3 scripts/check_open_boundary.py src pyproject.toml
+python3 - <<'PY'
+import subprocess, sys
+from pathlib import Path
+sys.path.insert(0, 'scripts')
+from runtime_surface import open_surface_files
+files = [str(path) for path in open_surface_files(Path('.').resolve())]
+raise SystemExit(subprocess.call([sys.executable, 'scripts/check_open_boundary.py', 'pyproject.toml', *files]))
+PY
 : "${TEST_DATABASE_URL:?A disposable PostgreSQL server is required}"
 uv lock --check
 uv sync --frozen --python 3.13
@@ -10,6 +17,8 @@ scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 uv run --frozen pytest --junitxml="$scratch/source.xml"
 uv run --frozen pytest -q tests_tools
+# Frozen histories are checkout qualification, not installed-package cases.
+uv run --frozen pytest -q qualification/history_tests
 uv build --out-dir "$scratch/dist"
 uv run --frozen python scripts/verify_wheel.py "$scratch/dist"
 uv run --frozen python scripts/export_release_contract.py "$scratch"/dist/*.whl --output "$scratch/contract"

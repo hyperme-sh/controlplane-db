@@ -1,4 +1,8 @@
-"""Fresh generic-model fixtures; historical owner chains are private qualification."""
+"""Fresh generic-model fixtures.
+
+Frozen owner histories stay in the checkout and are qualified by
+qualification/history_tests, not by this installed-package suite.
+"""
 import os
 import uuid
 

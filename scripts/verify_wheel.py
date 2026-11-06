@@ -2,15 +2,13 @@
 from pathlib import Path
 import sys
 import zipfile
+from runtime_surface import is_wheel_excluded
 root = Path(__file__).resolve().parents[1]
-expected = {p.relative_to(root / 'src').as_posix(): p.read_bytes()
-            for p in (root / 'src').rglob('*')
-            if p.is_file() and '__pycache__' not in p.parts}
-# Owner migration bundles are installed only in their owning service image.
-excluded_owner_resources = ('controlplane_db/alembic.ini', 'controlplane_db/alembic/', 'controlplane_db/migration_chains/')
-expected = {name: data for name, data in expected.items()
-            if not any(name == path or (path.endswith('/') and name.startswith(path))
-                       for path in excluded_owner_resources)}
+expected = {name: path.read_bytes()
+            for path in (root / 'src').rglob('*')
+            if path.is_file() and '__pycache__' not in path.parts
+            for name in (path.relative_to(root / 'src').as_posix(),)
+            if not is_wheel_excluded(name)}
 resource = root / 'proto/spanopticon/v1/contractecho.proto'
 if resource.exists():
     expected['controlplane_proto_data/contractecho.proto'] = resource.read_bytes()
