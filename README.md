@@ -368,3 +368,7 @@ the native trigger forbids changing or clearing the mode. TEST erasure rejects
 live or unproven Stripe IDs/metadata regardless of the TEST database marker.
 No provider IDs, process settings or caller metadata are guessed as sandbox.
 Legacy databases without the native column retain their existing payment writes.
+
+Existing Stripe-bearing rows without independently verified provider mode remain
+ineligible for TEST erasure. The payment owner may record actual validated
+provider observations; no migration guesses or backfills their sandbox status.

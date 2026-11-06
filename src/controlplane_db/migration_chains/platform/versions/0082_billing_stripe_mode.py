@@ -26,17 +26,24 @@ def upgrade():
     """)
     connection = op.get_bind()
     definition = connection.scalar(sa.text("SELECT pg_get_functiondef(CAST(:s AS regprocedure))"), {"s":_SIGNATURE})
+    original_definition = definition
+    # Accept both earlier 0081 images: the initial guard and its conservative
+    # pre-merge Stripe refusal. Install the same provenance-aware final guard.
+    legacy_refusal = "  -- Stripe identifiers carry no trustworthy mode discriminator. Neither a TEST\n  -- database nor mutable metadata can establish sandbox provenance. Retain\n  -- these rows until the billing owner supplies immutable provider evidence.\n  IF p_name='billing_records' AND (\n    p_data->>'stripe_customer_id' IS NOT NULL\n    OR p_data->>'stripe_subscription_id' IS NOT NULL\n    OR p_data->>'stripe_session_id' IS NOT NULL\n    OR p_data->>'payment_type' LIKE 'stripe%'\n    OR EXISTS(SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(p_data->'metadata')='object'\n      THEN p_data->'metadata' ELSE '{}'::jsonb END) k WHERE k LIKE 'stripe%')\n  ) THEN\n    RAISE EXCEPTION 'Immutable Stripe sandbox provenance required' USING ERRCODE='42501'; END IF;\n"
+    if legacy_refusal in definition:
+        definition = definition.replace(legacy_refusal, "")
     anchor = "BEGIN\n  IF (p_data ? 'livemode'"
     if definition.count(anchor)!=1:
         raise RuntimeError("Expected original TEST row provenance guard")
-    connection.execute(sa.text("INSERT INTO public.account_test_policy_originals VALUES(:s,:d)"), {"s":_SIGNATURE,"d":definition})
+    connection.execute(sa.text("INSERT INTO public.account_test_policy_originals VALUES(:s,:d)"), {"s":_SIGNATURE,"d":original_definition})
     guard = """BEGIN
   IF p_name='billing_records' AND (
       p_data->'stripe_livemode'='true'::jsonb OR (
         (coalesce(p_data->>'stripe_customer_id',p_data->>'stripe_subscription_id',p_data->>'stripe_session_id',p_data->>'product_id',p_data->>'price_id') IS NOT NULL
-          OR EXISTS(SELECT 1 FROM jsonb_object_keys(coalesce(p_data->'metadata','{}'::jsonb)) k WHERE left(k,7)='stripe_'))
+          OR p_data->>'payment_type' LIKE 'stripe%'
+          OR EXISTS(SELECT 1 FROM jsonb_object_keys(CASE WHEN jsonb_typeof(p_data->'metadata')='object' THEN p_data->'metadata' ELSE '{}'::jsonb END) k WHERE left(k,6)='stripe'))
         AND p_data->'stripe_livemode' IS DISTINCT FROM 'false'::jsonb)) THEN
-    RAISE EXCEPTION 'Authoritative sandbox Stripe billing provenance required' USING ERRCODE='42501'; END IF;
+    RAISE EXCEPTION 'Immutable Stripe sandbox provenance required' USING ERRCODE='42501'; END IF;
   IF (p_data ? 'livemode'"""
     connection.exec_driver_sql(definition.replace(anchor,guard),execution_options={"no_parameters":True})
 

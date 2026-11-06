@@ -114,7 +114,10 @@ def test_provider_mode_adapter_preserves_legacy_schema_and_native_immutability(b
     engine,ta,tb,org,ids=billing_owner
     if not native:
         with engine.begin() as c:
+            original=c.scalar(text("SELECT definition FROM account_test_policy_originals WHERE signature='public.account_test_check_row(text,jsonb)'"))
+            assert 'Immutable Stripe sandbox provenance required' in original
             command.downgrade(migrations._config(migrations._ROOT,'platform',c),'platform_0081_test_authority')
+            assert c.scalar(text("SELECT pg_get_functiondef('public.account_test_check_row(text,jsonb)'::regprocedure)"))==original
     with Session(engine) as session:
         row=get_payment(session,ta,ids[0],lock=True)
         with pytest.raises(ValueError,match='Verified Stripe provider mode'):

@@ -1405,7 +1405,7 @@ def test_stripe_billing_requires_immutable_sandbox_provenance(migrated_postgres,
             with engine.begin() as c:
                 assert purge_test_finances(c,subject,at)['tables']=={'billing_records':1}
         else:
-            with pytest.raises(DBAPIError,match='sandbox Stripe billing provenance'):
+            with pytest.raises(DBAPIError,match='Immutable Stripe sandbox provenance'):
                 with engine.begin() as c:
                     oid,tid=c.execute(text('SELECT tableoid,ctid::text FROM billing_records WHERE id=:p'),{'p':payment}).one()
                     c.execute(text('SELECT public.account_stage_test_delete(:s,:at,CAST(:r AS oid),:tid,NULL,NULL)'),{'s':subject,'at':at,'r':oid,'tid':tid})
@@ -1416,5 +1416,44 @@ def test_stripe_billing_requires_immutable_sandbox_provenance(migrated_postgres,
                 with pytest.raises(DBAPIError,match='mode is immutable'):
                     with engine.begin() as c:
                         c.execute(text('UPDATE billing_records SET stripe_livemode=:mode WHERE id=:p'),{'mode':replacement,'p':payment})
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize('field', ['stripe_customer_id', 'stripe_subscription_id', 'stripe_session_id'])
+def test_stripe_billing_without_immutable_mode_is_retained(migrated_postgres, field):
+    from controlplane_db.test_retention import purge_test_finances
+    engine = create_engine(migrated_postgres)
+    try:
+        def provider(c, subject, user, payment, tenant):
+            c.execute(text(f"UPDATE billing_records SET {field}=:v WHERE id=:p"),
+                      {'v': 'provider_opaque_identifier', 'p': payment})
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(c, before_close=provider)
+            c.execute(text("INSERT INTO account_test_data_policy(singleton,database_oid,database_name,enabled) VALUES(true,(SELECT oid FROM pg_database WHERE datname=current_database()),current_database(),true)"))
+        with pytest.raises(DBAPIError, match='Immutable Stripe sandbox provenance'):
+            with engine.begin() as c:
+                purge_test_finances(c, subject, at)
+        with engine.begin() as c:
+            assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'), {'p':payment}) == 1
+            assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities')) == 0
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize('data', [
+    {'stripe_customer_id': 'cus_live'},
+    {'stripe_subscription_id': 'sub_live'},
+    {'stripe_session_id': 'cs_live'},
+    {'payment_type': 'stripe_invoice'},
+    {'metadata': {'stripe_session_id': 'cs_live', 'livemode': False}},
+])
+def test_database_guard_refuses_unproven_stripe_mode(migrated_postgres, data):
+    import json
+    engine = create_engine(migrated_postgres)
+    try:
+        with pytest.raises(DBAPIError, match='Immutable Stripe sandbox provenance'):
+            with engine.begin() as c:
+                c.execute(text("SELECT public.account_test_check_row('billing_records',CAST(:d AS jsonb))"), {'d':json.dumps(data)})
     finally:
         engine.dispose()
