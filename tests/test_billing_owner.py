@@ -103,3 +103,48 @@ def test_registry_scans_do_not_widen_rls_authority(billing_owner):
         assert subscription_tenant(session, str(tb)) is None
         assert get_payment(session, tb, ids[1]) is None
         session.rollback()
+
+
+@pytest.mark.parametrize('native',[False,True])
+def test_provider_mode_adapter_preserves_legacy_schema_and_native_immutability(billing_owner,billing_owner_url,native):
+    from alembic import command
+    from controlplane_db import migrations
+    from controlplane_db.billing_store import record_stripe_mode, stripe_mode
+    from sqlalchemy.exc import DBAPIError
+    engine,ta,tb,org,ids=billing_owner
+    if not native:
+        with engine.begin() as c:
+            original=c.scalar(text("SELECT definition FROM account_test_policy_originals WHERE signature='public.account_test_check_row(text,jsonb)'"))
+            assert 'Immutable Stripe sandbox provenance required' in original
+            command.downgrade(migrations._config(migrations._ROOT,'platform',c),'platform_0081_test_authority')
+            assert c.scalar(text("SELECT pg_get_functiondef('public.account_test_check_row(text,jsonb)'::regprocedure)"))==original
+    with Session(engine) as session:
+        row=get_payment(session,ta,ids[0],lock=True)
+        with pytest.raises(ValueError,match='Verified Stripe provider mode'):
+            record_stripe_mode(session,row,0)
+        assert stripe_mode(session,row) is None
+        clocks=session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()
+        assert record_stripe_mode(session,row,False) is native
+        assert stripe_mode(session,row) is (False if native else None)
+        assert session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()==clocks
+        session.rollback()
+    with Session(engine) as session:
+        row=get_payment(session,ta,ids[0],lock=True)
+        assert stripe_mode(session,row) is None
+        assert record_stripe_mode(session,row,True) is native
+        session.commit()
+    if native:
+        with pytest.raises(DBAPIError,match='mode is immutable'):
+            with Session(engine) as session:
+                row=get_payment(session,ta,ids[0],lock=True)
+                record_stripe_mode(session,row,False)
+        with Session(engine) as session:
+            assert stripe_mode(session,get_payment(session,ta,ids[0])) is True
+            assert stripe_mode(session,get_payment(session,tb,ids[1])) is None
+        with Session(engine) as session:
+            row=get_payment(session,ta,ids[0],lock=True)
+            before=session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()
+            row.amount+=1
+            session.flush()
+            after=session.execute(text('SELECT financial_activity_at,financial_retain_until FROM billing_records WHERE id=:id'),{'id':row.id}).one()
+            assert after[0]>before[0] and after[1]>before[1]

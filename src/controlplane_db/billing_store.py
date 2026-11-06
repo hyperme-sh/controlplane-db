@@ -454,3 +454,31 @@ def anonymous_accounting_totals(session) -> tuple[AccountingTotal, ...]:
     ).execution_options(populate_existing=True))
     return tuple(AccountingTotal(AccountingMetric(row.metric), row.currency,
                                  AccountingUnit(row.unit), int(row.amount)) for row in rows)
+
+
+def stripe_mode(session, payment: BillingPayment) -> bool | None:
+    """Read native provider provenance without extending the legacy ORM mapping."""
+    available=session.scalar(text("SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_attribute WHERE attrelid=to_regclass('public.billing_records') AND attname='stripe_livemode' AND NOT attisdropped)"))
+    if available is not True:
+        return None
+    session.flush()
+    return session.scalar(text("SELECT stripe_livemode FROM public.billing_records WHERE id=:id AND tenant_id IS NOT DISTINCT FROM CAST(:tenant AS uuid)"),{"id":payment.id,"tenant":payment.tenant_id})
+
+
+def record_stripe_mode(session, payment: BillingPayment, livemode: bool) -> bool:
+    """Trusted payment adapter records a verified provider response in its tx.
+
+    Never infer this value from IDs, metadata, process TEST mode or an API flag.
+    Legacy databases without native closure support keep their existing writes;
+    no TEST erasure authority exists there. Once known, PostgreSQL forbids relabeling.
+    """
+    if type(livemode) is not bool:
+        raise ValueError("Verified Stripe provider mode required")
+    available=session.scalar(text("SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_attribute WHERE attrelid=to_regclass('public.billing_records') AND attname='stripe_livemode' AND NOT attisdropped)"))
+    if available is not True:
+        return False
+    session.flush()
+    result=session.execute(text("UPDATE public.billing_records SET stripe_livemode=:mode WHERE id=:id AND tenant_id IS NOT DISTINCT FROM CAST(:tenant AS uuid) RETURNING stripe_livemode"),{"mode":livemode,"id":payment.id,"tenant":payment.tenant_id})
+    if result.scalar_one_or_none() is not livemode:
+        raise ValueError("Original Stripe billing source required")
+    return True

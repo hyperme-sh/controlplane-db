@@ -46,7 +46,7 @@ def test_untrusted_role_cannot_enable_test_or_mint_delete_capabilities(
             "SELECT public.account_test_data_enabled()",
             "SELECT public.account_test_row_delete_allowed(0,'{}'::jsonb)",
             "INSERT INTO account_test_data_policy(singleton,database_oid,database_name,enabled) VALUES(true,0,current_database(),true)",
-            "INSERT INTO account_test_delete_capabilities VALUES(pg_current_xact_id()::text,0,decode('00','hex'))",
+            "INSERT INTO account_test_delete_capabilities(transaction_id,relation,row_digest) VALUES(pg_current_xact_id()::text,0,decode('00','hex'))",
         ):
             with pytest.raises(DBAPIError):
                 with engine.begin() as c:
@@ -70,7 +70,7 @@ def test_capability_must_be_exact_and_cannot_survive_commit(migrated_postgres):
                 )
                 c.execute(
                     text(
-                        "INSERT INTO account_test_delete_capabilities VALUES(pg_current_xact_id()::text,'public.billing_records'::regclass,sha256(convert_to('{}'::jsonb::text,'UTF8')))"
+                        "INSERT INTO account_test_delete_capabilities(transaction_id,relation,row_digest) VALUES(pg_current_xact_id()::text,'public.billing_records'::regclass,sha256(convert_to('{}'::jsonb::text,'UTF8')))"
                     )
                 )
                 assert (
@@ -282,8 +282,10 @@ def test_orders_tax_and_payout_children_are_erased_without_settlement_or_age(
             text("UPDATE billing_records SET payment_type='usdc' WHERE id=:p"), params
         )
         c.execute(
-            text("""INSERT INTO billing_tax_orders(revision_id,tenant_id,billing_record_id,seller_id,supply,fee_payer,policy_version,tax_code,subtotal_cents,country,state,postal_code,city,line1,line2)
-          VALUES(:tax,:t,:p,:host,'owned','host','EXAMPLE-test','txcd_00000000',1234,'US','CA','00000','Test City','Fixture','')"""),
+            text(
+                """INSERT INTO billing_tax_orders(revision_id,tenant_id,billing_record_id,seller_id,supply,fee_payer,policy_version,tax_code,subtotal_cents,country,state,postal_code,city,line1,line2)
+          VALUES(:tax,:t,:p,:host,'owned','host','EXAMPLE-test','txcd_00000000',1234,'US','CA','00000','Test City','Fixture','')"""
+            ),
             params,
         )
         c.execute(
@@ -293,13 +295,17 @@ def test_orders_tax_and_payout_children_are_erased_without_settlement_or_age(
             params,
         )
         c.execute(
-            text("""INSERT INTO hypermesh_leases(id,tenant_id,kind,status,renter_user_id,class_id,host_org_id,billing_record_id,reserved_hours,created_at,token_count,loaded_hours,purpose)
-          VALUES(:lease,:t,'p1_hardware','active',:u,'test-class',:host,:p,1,now(),0,0,'renter')"""),
+            text(
+                """INSERT INTO hypermesh_leases(id,tenant_id,kind,status,renter_user_id,class_id,host_org_id,billing_record_id,reserved_hours,created_at,token_count,loaded_hours,purpose)
+          VALUES(:lease,:t,'p1_hardware','active',:u,'test-class',:host,:p,1,now(),0,0,'renter')"""
+            ),
             params,
         )
         c.execute(
-            text("""INSERT INTO hypermesh_payouts(lease_id,tenant_id,host_org_id,host_pubkey,kind,gross_cents,stripe_cut_cents,platform_take_cents,take_bps,net_cents,net_usdc_atoms)
-          VALUES(:lease,:t,:host,'test-host','p1_hardware',1234,0,234,1900,1000,10000000)"""),
+            text(
+                """INSERT INTO hypermesh_payouts(lease_id,tenant_id,host_org_id,host_pubkey,kind,gross_cents,stripe_cut_cents,platform_take_cents,take_bps,net_cents,net_usdc_atoms)
+          VALUES(:lease,:t,:host,'test-host','p1_hardware',1234,0,234,1900,1000,10000000)"""
+            ),
             params,
         )
 
@@ -377,8 +383,10 @@ def test_production_native_hold_and_seven_year_guards_remain_enforced(
         with pytest.raises(DBAPIError, match="seven-year financial retention"):
             with engine.begin() as c:
                 c.execute(
-                    text("""SELECT public.account_issue_financial_transition(:s,:at,NULL,ARRAY[CAST(:s AS text)],
-                  'billing','billing_records',b.id::text,to_jsonb(b),NULL,NULL) FROM billing_records b WHERE b.id=:p"""),
+                    text(
+                        """SELECT public.account_issue_financial_transition(:s,:at,NULL,ARRAY[CAST(:s AS text)],
+                  'billing','billing_records',b.id::text,to_jsonb(b),NULL,NULL) FROM billing_records b WHERE b.id=:p"""
+                    ),
                     {"s": subject, "at": at, "p": payment},
                 )
         with engine.begin() as c:
@@ -608,7 +616,7 @@ def test_successful_delete_capability_serializes_disabling_test_mode(migrated_po
         with engine.begin() as c:
             c.execute(
                 text(
-                    "INSERT INTO account_test_delete_capabilities VALUES(pg_current_xact_id()::text,'public.billing_records'::regclass,sha256(convert_to('{}'::jsonb::text,'UTF8')))"
+                    "INSERT INTO account_test_delete_capabilities(transaction_id,relation,row_digest) VALUES(pg_current_xact_id()::text,'public.billing_records'::regclass,sha256(convert_to('{}'::jsonb::text,'UTF8')))"
                 )
             )
             assert (
@@ -805,10 +813,12 @@ def test_legacy_native_chain_discriminator_protects_mainnet_rows(
         # boundary if encountered during TEST cleanup. Its native discriminator
         # is chain_id, not a livemode field.
         c.execute(
-            text("""CREATE TABLE usdc_deposit_addresses(
+            text(
+                """CREATE TABLE usdc_deposit_addresses(
           tenant_id uuid NOT NULL REFERENCES tenants(id),user_id uuid NOT NULL REFERENCES users(id),
           chain_id integer NOT NULL CHECK(chain_id IN(8453,84532)),address varchar(42) NOT NULL,
-          PRIMARY KEY(tenant_id,user_id,chain_id))""")
+          PRIMARY KEY(tenant_id,user_id,chain_id))"""
+            )
         )
         c.execute(
             text(
@@ -1033,9 +1043,9 @@ def test_connect_grants_and_results_require_the_original_sandbox_recipient(
                 "a": attempt,
                 "s": subject,
                 "key": str(grant),
-                "account": "acct_TestOwner"
-                if original_recipient
-                else "acct_DifferentOwner",
+                "account": (
+                    "acct_TestOwner" if original_recipient else "acct_DifferentOwner"
+                ),
             },
         )
         c.execute(
@@ -1092,3 +1102,463 @@ def test_connect_grants_and_results_require_the_original_sandbox_recipient(
             )
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["sandbox", "live_connect", "mainnet", "physical_child", "shared_billing"],
+)
+def test_restricted_coordinator_cannot_forge_or_write_financial_authority(
+    migrated_postgres, scenario
+):
+    import uuid
+    from controlplane_db.test_retention import financial_tables, purge_test_finances
+
+    engine = create_engine(migrated_postgres)
+    role = "test_coordinator_" + uuid.uuid4().hex
+    host, attempt, grant, address = [uuid.uuid4() for _ in range(4)]
+
+    def connect(c, subject, user, payment, tenant):
+        if scenario == "shared_billing":
+            former_user, former_subject = uuid.uuid4(), str(uuid.uuid4())
+            c.execute(
+                text(
+                    "INSERT INTO users(id,tenant_id,first_name,last_name,email,gender,is_active,keycloak_sub) VALUES(:u,:t,'Former','Payer',:email,'unspecified',true,:s)"
+                ),
+                {
+                    "u": former_user,
+                    "t": tenant,
+                    "email": former_subject + "@example.invalid",
+                    "s": former_subject,
+                },
+            )
+            c.execute(
+                text(
+                    "INSERT INTO account_lifecycles(subject,requested_at,requested_by,source,state,retry_at,financial_hold,effects) VALUES(:s,now(),:s,'self_service','closing',now(),false,'{}'::jsonb)"
+                ),
+                {"s": former_subject},
+            )
+            # Real billing updates retain both original and current parties.
+            for payer, actor in [(former_user, former_subject), (user, subject)]:
+                c.execute(
+                    text(
+                        "UPDATE billing_records SET user_id=:u, metadata=jsonb_build_object('actor_sub',CAST(:s AS text)) WHERE id=:p"
+                    ),
+                    {"u": payer, "s": actor, "p": payment},
+                )
+            return
+        if scenario != "live_connect":
+            return
+        c.execute(
+            text(
+                "INSERT INTO connect_recipient_accounts(tenant_id,host_org_id,livemode,live_approval_reference,attempt_id,attempted_at,legal_type,country,state,stripe_account_id,creation_status,initiated_by_sub) VALUES(:t,:h,true,'fixture-live',:a,now(),'individual','US','WA','acct_RestrictedLive','bound',:initiator)"
+            ),
+            {"t": tenant, "h": host, "a": attempt, "initiator": str(uuid.uuid4())},
+        )
+        c.execute(
+            text(
+                "INSERT INTO connect_access_grants(id,tenant_id,host_org_id,enrollment_attempt_id,platform_id,account_id,owner_sub,member_id,issuer_session,purpose,policy,policy_hash,epoch,parameters,idempotency_key,created_at) VALUES(:g,:t,:h,:a,'acct_Platform','acct_RestrictedLive',:s,'member','session','view','embedded-api/v1',repeat('a',64),1,'{}'::jsonb,:key,now())"
+            ),
+            {
+                "g": grant,
+                "t": tenant,
+                "h": host,
+                "a": attempt,
+                "s": subject,
+                "key": str(grant),
+            },
+        )
+
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(
+                c,
+                tenant=uuid.uuid4() if scenario == "live_connect" else None,
+                before_close=connect,
+            )
+            enable_test_policy(c)
+            if scenario == "mainnet":
+                c.execute(
+                    text(
+                        "CREATE TABLE usdc_deposit_addresses(id uuid PRIMARY KEY,user_id uuid NOT NULL,chain_id integer NOT NULL)"
+                    )
+                )
+                c.execute(
+                    text("INSERT INTO usdc_deposit_addresses VALUES(:id,:u,8453)"),
+                    {"id": address, "u": user},
+                )
+            if scenario == "physical_child":
+                c.execute(
+                    text(
+                        "CREATE TABLE physical_owner_child(id uuid PRIMARY KEY,billing_id uuid REFERENCES billing_records(id) ON DELETE CASCADE)"
+                    )
+                )
+                c.execute(
+                    text("INSERT INTO physical_owner_child VALUES(:id,:p)"),
+                    {"id": uuid.uuid4(), "p": payment},
+                )
+            c.exec_driver_sql(
+                f"CREATE ROLE {role} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS"
+            )
+            tables = list(financial_tables()) + [
+                "account_lifecycles",
+                "account_lifecycle_scopes",
+                "account_financial_source_bindings",
+                "users",
+                "identity_retirements",
+            ]
+            for name in tables:
+                if (
+                    c.scalar(text("SELECT to_regclass(:n)"), {"n": "public." + name})
+                    is not None
+                ):
+                    c.exec_driver_sql(f'GRANT SELECT ON public."{name}" TO {role}')
+            for signature in (
+                "account_test_data_enabled()",
+                "account_lock_test_data_policy()",
+                "account_require_financial_inventory(text,timestamptz)",
+                "account_lock_financial_inventory(text,timestamptz,uuid)",
+                "hypermesh_financial_parties(text,jsonb)",
+                "account_lock_test_financial_sources(text,timestamptz)",
+                "account_stage_test_delete(text,timestamptz,oid,text,oid,text)",
+                "account_delete_test_financial_row(text,timestamptz,oid,text)",
+                "account_clear_test_delete_capabilities()",
+                "account_reconcile_test_financial_bindings(text,timestamptz)",
+            ):
+                c.exec_driver_sql(
+                    f"GRANT EXECUTE ON FUNCTION public.{signature} TO {role}"
+                )
+            table = (
+                "connect_access_grants"
+                if scenario == "live_connect"
+                else (
+                    "usdc_deposit_addresses"
+                    if scenario == "mainnet"
+                    else "billing_records"
+                )
+            )
+            identifier = (
+                grant
+                if scenario == "live_connect"
+                else (address if scenario == "mainnet" else payment)
+            )
+            oid, tid = c.execute(
+                text(f"SELECT tableoid,ctid::text FROM public.{table} WHERE id=:id"),
+                {"id": identifier},
+            ).one()
+        for command in (
+            "INSERT INTO account_test_delete_capabilities(transaction_id,relation,row_digest) SELECT pg_current_xact_id()::text,1,decode('00','hex')",
+            "DELETE FROM account_test_delete_capabilities WHERE false",
+            "DELETE FROM account_financial_source_bindings WHERE false",
+            f"DELETE FROM {table} WHERE false",
+        ):
+            with pytest.raises(DBAPIError, match="permission denied"):
+                with engine.begin() as c:
+                    c.exec_driver_sql(f"SET LOCAL ROLE {role}")
+                    c.execute(text(command))
+        if scenario == "sandbox":
+            with pytest.raises(DBAPIError, match="capability required"):
+                with engine.begin() as c:
+                    c.exec_driver_sql(f"SET LOCAL ROLE {role}")
+                    c.execute(
+                        text(
+                            "SELECT public.account_delete_test_financial_row(:s,:at,CAST(:r AS oid),:tid)"
+                        ),
+                        {"s": subject, "at": at, "r": oid, "tid": tid},
+                    )
+            with engine.begin() as c:
+                c.exec_driver_sql(f"SET LOCAL ROLE {role}")
+                assert purge_test_finances(c, subject, at)["complete"] is True
+        elif scenario == "physical_child":
+            with pytest.raises(DBAPIError, match="dependent rows"):
+                with engine.begin() as c:
+                    c.exec_driver_sql(f"SET LOCAL ROLE {role}")
+                    c.execute(
+                        text(
+                            "SELECT public.account_stage_test_delete(:s,:at,CAST(:r AS oid),:tid,NULL,NULL)"
+                        ),
+                        {"s": subject, "at": at, "r": oid, "tid": tid},
+                    )
+                    c.execute(
+                        text(
+                            "SELECT public.account_delete_test_financial_row(:s,:at,CAST(:r AS oid),:tid)"
+                        ),
+                        {"s": subject, "at": at, "r": oid, "tid": tid},
+                    )
+            with engine.begin() as c:
+                assert c.scalar(text("SELECT count(*) FROM physical_owner_child")) == 1
+                assert (
+                    c.scalar(
+                        text("SELECT count(*) FROM billing_records WHERE id=:p"),
+                        {"p": payment},
+                    )
+                    == 1
+                )
+        else:
+            if scenario == "shared_billing":
+                from controlplane_db.test_retention import TestRetentionUnavailable
+
+                with pytest.raises(
+                    TestRetentionUnavailable, match="Shared native billing"
+                ):
+                    with engine.begin() as c:
+                        c.exec_driver_sql(f"SET LOCAL ROLE {role}")
+                        purge_test_finances(c, subject, at)
+            with pytest.raises(
+                DBAPIError,
+                match=(
+                    "Shared native billing"
+                    if scenario == "shared_billing"
+                    else "Live or"
+                ),
+            ):
+                with engine.begin() as c:
+                    c.exec_driver_sql(f"SET LOCAL ROLE {role}")
+                    c.execute(
+                        text(
+                            "SELECT public.account_stage_test_delete(:s,:at,CAST(:r AS oid),:tid,NULL,NULL)"
+                        ),
+                        {"s": subject, "at": at, "r": oid, "tid": tid},
+                    )
+            with engine.begin() as c:
+                assert (
+                    c.scalar(
+                        text(f"SELECT count(*) FROM public.{table} WHERE id=:id"),
+                        {"id": identifier},
+                    )
+                    == 1
+                )
+                assert (
+                    c.scalar(
+                        text("SELECT count(*) FROM account_test_delete_capabilities")
+                    )
+                    == 0
+                )
+    finally:
+        with engine.begin() as c:
+            c.exec_driver_sql(f"DROP OWNED BY {role}")
+            c.exec_driver_sql(f"DROP ROLE IF EXISTS {role}")
+        engine.dispose()
+
+
+@pytest.mark.parametrize("ownership", ["same", "foreign_purchase", "foreign_entitlement"])
+def test_marketplace_dependencies_require_the_original_scoped_buyer(migrated_postgres, ownership):
+    import uuid
+    from controlplane_db.test_retention import purge_test_finances, TestRetentionUnavailable
+
+    engine = create_engine(migrated_postgres)
+    tenant, buyer, listing, purchase, entitlement = [uuid.uuid4() for _ in range(5)]
+    def marketplace(c, subject, user, payment, tenant):
+        c.execute(text("INSERT INTO users(id,tenant_id,first_name,last_name,email,gender,is_active,keycloak_sub) VALUES(:u,:t,'Other','Buyer',:email,'unspecified',true,:s)"),
+                  {"u":buyer,"t":tenant,"email":str(buyer)+"@example.invalid","s":str(buyer)})
+        c.execute(text("INSERT INTO marketplace_listings(id,tenant_id,seller_id,title,description,listing_type,price_type,is_public) VALUES(:l,:t,:u,'Fixture','Fixture','agent','fixed',false)"),
+                  {"l":listing,"t":tenant,"u":user})
+        c.execute(text("INSERT INTO marketplace_purchases(id,tenant_id,listing_id,buyer_id,status,billing_record_id) VALUES(:p,:t,:l,:u,'paid',:b)"),
+                  {"p":purchase,"t":tenant,"l":listing,"u":buyer if ownership=='foreign_purchase' else user,"b":payment})
+        c.execute(text("INSERT INTO ai_agent_entitlements(id,tenant_id,buyer_id,purchase_id,listing_id,license_key_sha256) VALUES(:e,:t,:u,:p,:l,repeat('a',64))"),
+                  {"e":entitlement,"t":tenant,"u":user if ownership=='same' else buyer,"p":purchase,"l":listing})
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(c, tenant=tenant, before_close=marketplace)
+            enable_test_policy(c)
+        if ownership=='same':
+            with engine.begin() as c:
+                receipt = purge_test_finances(c,subject,at)
+                assert receipt['tables']=={'billing_records':1,'marketplace_purchases':1,'ai_agent_entitlements':1}
+        else:
+            with pytest.raises(TestRetentionUnavailable,match='Foreign native TEST customer'):
+                with engine.begin() as c:
+                    purge_test_finances(c,subject,at)
+            # Bypass the Python planner: the native issuer independently refuses
+            # the foreign buyer even with an authorized exact parent capability.
+            with pytest.raises(DBAPIError,match='Foreign native TEST customer'):
+                with engine.begin() as c:
+                    parent_oid=parent_tid=None
+                    for table, identifier in [('billing_records',payment),('marketplace_purchases',purchase),('ai_agent_entitlements',entitlement)]:
+                        oid,tid=c.execute(text(f'SELECT tableoid,ctid::text FROM public.{table} WHERE id=:id'),{'id':identifier}).one()
+                        c.execute(text('SELECT public.account_stage_test_delete(:s,:at,CAST(:r AS oid),:tid,CAST(:parent AS oid),:parent_tid)'),
+                                  {'s':subject,'at':at,'r':oid,'tid':tid,'parent':parent_oid,'parent_tid':parent_tid})
+                        parent_oid,parent_tid=oid,tid
+            with engine.begin() as c:
+                for table, identifier in [('billing_records',payment),('marketplace_purchases',purchase),('ai_agent_entitlements',entitlement)]:
+                    assert c.scalar(text(f'SELECT count(*) FROM public.{table} WHERE id=:id'),{'id':identifier})==1
+                assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities'))==0
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("livemode", [None,False,True])
+@pytest.mark.parametrize("provider_field", ["stripe_customer_id","stripe_session_id","stripe_subscription_id","metadata"])
+def test_stripe_billing_requires_immutable_sandbox_provenance(migrated_postgres,livemode,provider_field):
+    from controlplane_db.test_retention import purge_test_finances
+    engine=create_engine(migrated_postgres)
+    try:
+        with engine.begin() as c:
+            subject,at,user,payment=seed_closed_payer(c)
+            enable_test_policy(c)
+            if provider_field=='metadata':
+                c.execute(text("UPDATE billing_records SET metadata=metadata||'{\"stripe_payment_intent_id\":\"pi_fixture\"}'::jsonb WHERE id=:p"),{'p':payment})
+            else:
+                c.execute(text(f"UPDATE billing_records SET {provider_field}='provider_fixture' WHERE id=:p"),{'p':payment})
+            c.execute(text('UPDATE billing_records SET stripe_livemode=:mode WHERE id=:p'),{'mode':livemode,'p':payment})
+        if livemode is False:
+            with engine.begin() as c:
+                assert purge_test_finances(c,subject,at)['tables']=={'billing_records':1}
+        else:
+            with pytest.raises(DBAPIError,match='Immutable Stripe sandbox provenance'):
+                with engine.begin() as c:
+                    oid,tid=c.execute(text('SELECT tableoid,ctid::text FROM billing_records WHERE id=:p'),{'p':payment}).one()
+                    c.execute(text('SELECT public.account_stage_test_delete(:s,:at,CAST(:r AS oid),:tid,NULL,NULL)'),{'s':subject,'at':at,'r':oid,'tid':tid})
+            with engine.begin() as c:
+                assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'),{'p':payment})==1
+        if livemode is True:
+            for replacement in [None,False]:
+                with pytest.raises(DBAPIError,match='mode is immutable'):
+                    with engine.begin() as c:
+                        c.execute(text('UPDATE billing_records SET stripe_livemode=:mode WHERE id=:p'),{'mode':replacement,'p':payment})
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize('field', ['stripe_customer_id', 'stripe_subscription_id', 'stripe_session_id'])
+def test_stripe_billing_without_immutable_mode_is_retained(migrated_postgres, field):
+    from controlplane_db.test_retention import purge_test_finances
+    engine = create_engine(migrated_postgres)
+    try:
+        def provider(c, subject, user, payment, tenant):
+            c.execute(text(f"UPDATE billing_records SET {field}=:v WHERE id=:p"),
+                      {'v': 'provider_opaque_identifier', 'p': payment})
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(c, before_close=provider)
+            c.execute(text("INSERT INTO account_test_data_policy(singleton,database_oid,database_name,enabled) VALUES(true,(SELECT oid FROM pg_database WHERE datname=current_database()),current_database(),true)"))
+        with pytest.raises(DBAPIError, match='Immutable Stripe sandbox provenance'):
+            with engine.begin() as c:
+                purge_test_finances(c, subject, at)
+        with engine.begin() as c:
+            assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'), {'p':payment}) == 1
+            assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities')) == 0
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize('data', [
+    {'stripe_customer_id': 'cus_live'},
+    {'stripe_subscription_id': 'sub_live'},
+    {'stripe_session_id': 'cs_live'},
+    {'payment_type': 'stripe_invoice'},
+    {'metadata': {'stripe_session_id': 'cs_live', 'livemode': False}},
+])
+def test_database_guard_refuses_unproven_stripe_mode(migrated_postgres, data):
+    import json
+    engine = create_engine(migrated_postgres)
+    try:
+        with pytest.raises(DBAPIError, match='Immutable Stripe sandbox provenance'):
+            with engine.begin() as c:
+                c.execute(text("SELECT public.account_test_check_row('billing_records',CAST(:d AS jsonb))"), {'d':json.dumps(data)})
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize('metadata',[
+    {'payment_rail':'stripe_stablecoin'},
+    {'pending_refund':{'stripe_refund_id':'re_fixture'}},
+    {'nested':[{'provider':'stripe'}]},
+    {'nested':{'StripePaymentIntentId':'pi_fixture'}},
+])
+@pytest.mark.parametrize('livemode',[None,False])
+def test_nested_stripe_metadata_requires_real_sandbox_provenance(migrated_postgres,metadata,livemode):
+    import json
+    from controlplane_db.test_retention import purge_test_finances
+    engine=create_engine(migrated_postgres)
+    def provider(c,subject,user,payment,tenant):
+        c.execute(text('UPDATE billing_records SET metadata=metadata||CAST(:m AS jsonb),stripe_livemode=:mode WHERE id=:p'),{'m':json.dumps(metadata),'mode':livemode,'p':payment})
+    try:
+        with engine.begin() as c:
+            subject,at,user,payment=seed_closed_payer(c,before_close=provider)
+            enable_test_policy(c)
+        if livemode is False:
+            with engine.begin() as c:
+                assert purge_test_finances(c,subject,at)['tables']=={'billing_records':1}
+        else:
+            with pytest.raises(DBAPIError,match='Immutable Stripe sandbox provenance'):
+                with engine.begin() as c:
+                    purge_test_finances(c,subject,at)
+            with engine.begin() as c:
+                assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'),{'p':payment})==1
+                assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities'))==0
+    finally:engine.dispose()
+
+
+@pytest.mark.parametrize('case',['unbound','missing','unknown','live','mismatch','sandbox','local'])
+def test_stripe_lease_roots_require_original_linked_billing_provenance(migrated_postgres,case):
+    import uuid
+    from controlplane_db.test_retention import purge_test_finances
+    engine=create_engine(migrated_postgres)
+    lease,host,tenant=uuid.uuid4(),uuid.uuid4(),uuid.uuid4()
+    def lease_source(c,subject,user,payment,tenant):
+        mode=None if case in ['unknown','local'] else (True if case=='live' else False)
+        session=None if case=='local' else 'cs_original_fixture'
+        c.execute(text('UPDATE billing_records SET stripe_livemode=:mode,stripe_session_id=:session WHERE id=:p'),{'mode':mode,'session':session,'p':payment})
+        pointer=None if case=='unbound' else uuid.uuid4() if case=='missing' else payment
+        c.execute(text("INSERT INTO hypermesh_leases(id,tenant_id,kind,status,renter_user_id,class_id,host_org_id,billing_record_id,stripe_session_id,reserved_hours,created_at,token_count,loaded_hours,purpose) VALUES(:l,:t,'p1_hardware','active',:u,'test-class',:h,:p,:session,1,now(),0,0,'renter')"),
+                  {'l':lease,'t':tenant,'u':str(user),'h':host,'p':pointer,'session':'cs_other_fixture' if case=='mismatch' else session})
+    try:
+        with engine.begin() as c:
+            subject,at,user,payment=seed_closed_payer(c,tenant=tenant,before_close=lease_source)
+            enable_test_policy(c)
+        if case in ['sandbox','local']:
+            with engine.begin() as c:
+                assert purge_test_finances(c,subject,at)['tables']=={'billing_records':1,'hypermesh_leases':1}
+        else:
+            # Bypass planner/root ordering and directly ask the native issuer to
+            # authorize the lease: a missing/foreign/unproven billing link fails.
+            with pytest.raises(DBAPIError,match='provenance required'):
+                with engine.begin() as c:
+                    oid,tid=c.execute(text('SELECT tableoid,ctid::text FROM hypermesh_leases WHERE id=:l'),{'l':lease}).one()
+                    c.execute(text('SELECT public.account_stage_test_delete(:s,:at,CAST(:oid AS oid),:tid,NULL,NULL)'),{'s':subject,'at':at,'oid':oid,'tid':tid})
+            with engine.begin() as c:
+                assert c.scalar(text('SELECT count(*) FROM hypermesh_leases WHERE id=:l'),{'l':lease})==1
+                assert c.scalar(text('SELECT count(*) FROM billing_records WHERE id=:p'),{'p':payment})==1
+                assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities'))==0
+    finally:engine.dispose()
+
+
+@pytest.mark.parametrize('metadata', [
+    {'payment_rail':'stripe_stablecoin'},
+    {'pending_refund':{'stripe_refund_id':'re_live'}},
+    {'history':[{'nested':{'stripe_session_id':'cs_live'}}]},
+])
+@pytest.mark.parametrize('mode', [None, True, False])
+def test_nested_stripe_markers_require_immutable_mode(migrated_postgres, metadata, mode):
+    import json
+    engine=create_engine(migrated_postgres)
+    try:
+        def check():
+            with engine.begin() as c:
+                c.execute(text("SELECT public.account_test_check_row('billing_records',CAST(:d AS jsonb))"),
+                          {'d':json.dumps({'metadata':metadata,'stripe_livemode':mode})})
+        if mode is False: check()
+        else:
+            with pytest.raises(DBAPIError,match='Immutable Stripe sandbox provenance'): check()
+    finally: engine.dispose()
+
+
+@pytest.mark.parametrize('parent', ['missing','unknown','live','wrong_session','wrong_tenant','sandbox'])
+def test_stripe_lease_requires_matching_original_sandbox_billing(migrated_postgres,parent):
+    import json,uuid
+    engine=create_engine(migrated_postgres)
+    try:
+        with engine.begin() as c:
+            _,_,_,payment=seed_closed_payer(c)
+            c.execute(text("UPDATE billing_records SET stripe_session_id='cs_original',stripe_livemode=:mode WHERE id=:id"),
+                      {'mode':None if parent=='unknown' else parent=='live','id':payment})
+        data={'stripe_session_id':'cs_other' if parent=='wrong_session' else 'cs_original',
+              'billing_record_id':None if parent=='missing' else str(payment),
+              'tenant_id':str(uuid.uuid4()) if parent=='wrong_tenant' else None}
+        def check():
+            with engine.begin() as c:
+                c.execute(text("SELECT public.account_test_check_row('hypermesh_leases',CAST(:d AS jsonb))"),{'d':json.dumps(data)})
+        if parent=='sandbox': check()
+        else:
+            with pytest.raises(DBAPIError,match='Original Stripe lease sandbox provenance'):check()
+    finally:engine.dispose()

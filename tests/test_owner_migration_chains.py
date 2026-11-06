@@ -199,6 +199,7 @@ def test_reload_adopts_existing_database_and_is_repeatable(databases, tmp_path):
     assert_payment_financial_schema_delta(after)
     assert after['tables'].pop('host_payout_addresses')['rls'] == [True, True]
     assert_journal_schema_delta(after)
+    assert_hypermesh_empty_scope_delta(before, after)
     assert_subject_scope_delta(before, after)
     assert_cache_migration_delta(before, after)
     root = tmp_path / 'chains'
@@ -248,6 +249,7 @@ def test_reload_fresh_database_uses_owner_schema(databases):
     assert after['tables'].pop('host_payout_addresses')['rls'] == [True, True]
     assert_journal_schema_delta(after)
     before = snapshot(databases['source'])
+    assert_hypermesh_empty_scope_delta(before, after)
     assert_subject_scope_delta(before, after)
     assert_cache_migration_delta(before, after)
     assert migrations.current_heads(databases['reload_fresh']) == migrations.chain_heads()
@@ -380,6 +382,9 @@ def assert_cache_migration_delta(before, after):
         assert clock_function['grants'] == [['OWNER', 'EXECUTE', False]]
         if signature != 'account_billing_financial_metadata(p_metadata jsonb)':
             assert 'SECURITY DEFINER' in clock_function['definition']
+        if signature == 'account_billing_financial_clock()':
+            assert clock_function['definition'].count("'stripe_livemode'")==2
+            assert "interval '7 years'" in clock_function['definition']
     billing = after['tables']['billing_records']
     added_columns = [c for c in billing['columns'] if c[0] in {'financial_activity_at', 'financial_retain_until'}]
     assert [(c[0], c[1], c[2], c[3]) for c in added_columns] == [
@@ -1364,34 +1369,120 @@ def test_retirement_downgrade_preserves_recorded_tombstones(record_kind):
 
 
 def assert_test_retention_schema_delta(after):
+    billing = after['tables']['billing_records']
+    mode = [c for c in billing['columns'] if c[0]=='stripe_livemode']
+    assert mode == [['stripe_livemode','boolean',False,None,'','',None]]
+    billing['columns'] = [c for c in billing['columns'] if c not in mode]
+    triggers = [t for t in billing['triggers'] if t[0]=='billing_stripe_mode_immutable']
+    assert len(triggers)==1 and triggers[0][2]=='O'
+    assert 'BEFORE INSERT OR UPDATE ON public.billing_records' in triggers[0][1]
+    billing['triggers'] = [t for t in billing['triggers'] if t not in triggers]
     expected = {
-        'account_test_data_policy': {'singleton','database_oid','database_name','enabled','cluster_identifier'},
-        'account_test_delete_capabilities': {'transaction_id','relation','row_digest'},
-        'account_test_policy_originals': {'signature','definition'},
-        'account_test_delete_guard_originals': {'signature','definition'},
+        "account_test_data_policy": {
+            "singleton",
+            "database_oid",
+            "database_name",
+            "enabled",
+            "cluster_identifier",
+        },
+        "account_test_delete_capabilities": {
+            "transaction_id",
+            "relation",
+            "row_digest",
+            "source_subject",
+            "source_closed_at",
+            "row_tid",
+        },
+        "account_test_policy_originals": {"signature", "definition"},
+        "account_test_delete_guard_originals": {"signature", "definition"},
     }
     for name, columns in expected.items():
-        table = after['tables'].pop(name)
-        assert {c[0] for c in table['columns']} == columns
-        assert table['rls'] == [True,True]
-        assert not table['policies'] and not table['column_grants']
-        assert all(grant[0] == 'OWNER' for grant in table['grants'])
-        if name == 'account_test_delete_capabilities':
-            assert len(table['triggers']) == 1
-            trigger = table['triggers'][0]
-            assert trigger[0] == 'test_delete_capabilities_ephemeral' and trigger[2] == 'O'
-            assert 'DEFERRABLE INITIALLY DEFERRED' in trigger[1]
+        table = after["tables"].pop(name)
+        assert {c[0] for c in table["columns"]} == columns
+        assert table["rls"] == [True, True]
+        assert not table["policies"] and not table["column_grants"]
+        assert all(grant[0] == "OWNER" for grant in table["grants"])
+        if name == "account_test_delete_capabilities":
+            assert len(table["triggers"]) == 1
+            trigger = table["triggers"][0]
+            assert (
+                trigger[0] == "test_delete_capabilities_ephemeral" and trigger[2] == "O"
+            )
+            assert "DEFERRABLE INITIALLY DEFERRED" in trigger[1]
         else:
-            assert not table['triggers']
-    for signature in ('account_test_data_enabled()', 'account_lock_test_data_policy()',
-                      'account_test_row_delete_allowed(p_relation oid, p_row jsonb)',
-                      'account_test_capabilities_ephemeral()'):
-        function = after['functions'].pop(signature)
-        assert 'SECURITY DEFINER' in function['definition']
-        assert "search_path TO 'pg_catalog'" in function['definition']
-        assert "row_security TO 'off'" in function['definition']
-        assert function['grants'] == [['OWNER','EXECUTE',False]]
-    for signature in ('connect_recipient_immutable()', 'payment_payer_risk_expiry_guard()', 'tax_history_retained()'):
-        definition = after['functions'][signature]['definition']
-        assert definition.count('public.account_test_row_delete_allowed(TG_RELID,to_jsonb(OLD))') == 1
+            assert not table["triggers"]
+    for signature in (
+        "account_test_data_enabled()",
+        "account_lock_test_data_policy()",
+        "account_test_row_delete_allowed(p_relation oid, p_row jsonb)",
+        "account_test_capabilities_ephemeral()",
+    ):
+        function = after["functions"].pop(signature)
+        assert "SECURITY DEFINER" in function["definition"]
+        assert "search_path TO 'pg_catalog'" in function["definition"]
+        assert "row_security TO 'off'" in function["definition"]
+        assert function["grants"] == [["OWNER", "EXECUTE", False]]
+    authority_names = {
+        "account_test_stripe_metadata",
+        "account_billing_stripe_mode_immutable",
+        "account_test_table_name",
+        "account_lock_test_financial_sources",
+        "account_test_read_row",
+        "account_test_scope",
+        "account_test_check_row",
+        "account_test_check_row_pre0083",
+        "account_test_check_parties",
+        "account_test_edge",
+        "account_stage_test_delete",
+        "account_delete_test_financial_row",
+        "account_clear_test_delete_capabilities",
+        "account_test_json_mentions",
+        "account_reconcile_test_financial_bindings",
+    }
+    authority = {
+        key: value
+        for key, value in after["functions"].items()
+        if key.split("(")[0] in authority_names
+    }
+    assert {key.split("(")[0] for key in authority} == authority_names
+    assert len(authority) == len(authority_names)
+    for signature, function in authority.items():
+        assert "SECURITY DEFINER" in function["definition"]
+        assert "search_path TO 'pg_catalog', 'pg_temp'" in function["definition"]
+        assert "row_security TO 'off'" in function["definition"]
+        assert function["grants"] == [["OWNER", "EXECUTE", False]]
+        after["functions"].pop(signature)
+    for signature in (
+        "connect_recipient_immutable()",
+        "payment_payer_risk_expiry_guard()",
+        "tax_history_retained()",
+    ):
+        definition = after["functions"][signature]["definition"]
+        assert (
+            definition.count(
+                "public.account_test_row_delete_allowed(TG_RELID,to_jsonb(OLD))"
+            )
+            == 1
+        )
         assert "TG_LEVEL='ROW' AND TG_OP='DELETE'" in definition
+
+
+def assert_hypermesh_empty_scope_delta(before, after):
+    unsafe = "(current_setting('app.current_tenant_id'::text, true))::uuid"
+    safe = "(NULLIF(current_setting('app.current_tenant_id'::text, true), ''::text))::uuid"
+    checked = 0
+    for name, old_table in before['tables'].items():
+        if not name.startswith('hypermesh_') or name not in after['tables']:
+            continue
+        old_policies = {row[0]: row for row in old_table['policies']}
+        for row in after['tables'][name]['policies']:
+            old = old_policies.get(row[0])
+            if old is None:
+                continue
+            for index in (4, 5):
+                if old[index] and unsafe in old[index]:
+                    assert safe in row[index]
+                    assert row[index].replace(safe, unsafe) == old[index]
+                    row[index] = old[index]
+                    checked += 1
+    assert checked > 0

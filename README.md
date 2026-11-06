@@ -285,6 +285,13 @@ material.
 
 ## TEST financial retention
 
+Platform revision `platform_0081_test_authority` installs private erasure
+authority for both fresh databases and databases already on
+`platform_0080_test_retention`. The original consumed migration stays unchanged.
+Upgrade removes legacy non-owner capability table and column grants; reapply a
+reviewed worker role plan and remove old direct financial writes before startup.
+
+
 Platform `platform_0080_test_retention` and payment
 `payment_service_0081_test_gc` add a private, database-bound TEST policy. They
 leave production retention clocks and preservation/settlement rules in place.
@@ -328,15 +335,59 @@ or settlements occur in this helper. Physical model/storage cleanup still needs
 its own owner acknowledgments.
 
 PUBLIC receives no access to mode, capabilities or original guard definitions,
-and no execution of the new private functions. The private TEST coordinator needs
-execution of `account_test_data_enabled()`, `account_lock_test_data_policy()` and
-`account_test_row_delete_allowed(oid,jsonb)`, plus SELECT/INSERT/DELETE on the
-capability table and the appropriate SELECT/DELETE grants on its selected native
-financial tables. It does not need UPDATE on the policy table. The public service
-rejects grants on all four private TEST support tables. Production workers need
-only the read-only mode check in addition to their existing authority.
+and no execution of the private functions. The private TEST coordinator receives
+SELECT on financial sources and native bindings, plus execution of
+`account_lock_test_financial_sources`, `account_stage_test_delete`,
+`account_delete_test_financial_row`, `account_clear_test_delete_capabilities`
+and `account_reconcile_test_financial_bindings`. It has no financial source or
+binding writes and no capability-table access. Production workers need only the
+read-only mode check in addition to their existing authority.
+
+Database-owned routines read actual rows under native locks, repeat original
+payer/tenant and sandbox ancestry checks, and bind each capability to its
+subject, closure time, row image and current transaction. Dependent rows need an
+authorized native parent and an actual FK or explicit tenant-bound relationship.
+Even a compromised coordinator cannot insert capabilities or delete financial
+rows directly. The definer refuses remaining children before deletion, including
+CASCADE relationships to unknown physical owners. Source bindings are reconciled
+against live rows inside the same native authority. All new routines pin catalog
+lookup and put temporary schemas last. The public service rejects access to the
+private support state. Non-superuser worker startup rejects stale direct financial
+or capability privileges.
 
 Downgrade restores the exact saved native guard definitions. Disable TEST mode
 first, restore the payment-owner guards, then remove platform TEST support;
 removing the platform helper while owner guards still reference it is refused.
 No deployed database or provider is changed by package qualification.
+
+Stripe-backed billing requires independently recorded provider mode. Additive
+`platform_0082_stripe_mode` stores nullable `stripe_livemode` without expanding the
+legacy ORM mapping. Trusted payment adapters record only actual validated provider
+responses or original billing provenance; NULL remains unknown. Once recorded,
+the native trigger forbids changing or clearing the mode. TEST erasure rejects
+live or unproven Stripe IDs/metadata regardless of the TEST database marker.
+No provider IDs, process settings or caller metadata are guessed as sandbox.
+Legacy databases without the native column retain their existing payment writes.
+
+Existing Stripe-bearing rows without independently verified provider mode remain
+ineligible for TEST erasure. The payment owner may record actual validated
+provider observations; no migration guesses or backfills their sandbox status.
+
+Forward `platform_0083_stripe_scope` also requires original same-tenant billing
+provenance for Stripe-bearing leases, including exact saved session matching.
+Missing, live, unproven or mismatched links cannot authorize a lease root.
+Stripe classification traverses canonical metadata values and nested object/array
+keys. TEST workers require this current native provenance installation before
+claiming work; an older installed backend cannot silently keep a weaker guard.
+
+Provider-mode observations preserve the original production retention clock.
+Forward platform_0084_stripe_clock excludes only stripe_livemode from monetary
+activity comparison; real money changes still advance the seven-year clock and
+native financial epochs still invalidate old inventory proofs.
+
+The platform_0085_stripe_merge head converges both independently consumed Stripe
+guard histories without replacing the merged ancestry migration. Native upgrades
+start at each original single head, preserve tenant/billing rows, repeat as a
+no-op, and roll back through the genuine common predecessor before rebuilding
+either history. Scope checks and exact guard restoration work with or without
+the retained pre0083 function alias.
