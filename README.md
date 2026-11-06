@@ -282,3 +282,93 @@ accepted release are in [docs/releasing.md](docs/releasing.md).
 This package is licensed under [Apache-2.0](LICENSE). Dependencies retain
 their own licenses. This declaration does not relicense bundled third-party
 material.
+
+## TEST financial retention
+
+Platform revision `platform_0081_test_authority` installs private erasure
+authority for both fresh databases and databases already on
+`platform_0080_test_retention`. The original consumed migration stays unchanged.
+Upgrade removes legacy non-owner capability table and column grants; reapply a
+reviewed worker role plan and remove old direct financial writes before startup.
+
+
+Platform `platform_0080_test_retention` and payment
+`payment_service_0081_test_gc` add a private, database-bound TEST policy. They
+leave production retention clocks and preservation/settlement rules in place.
+No database becomes TEST merely by applying the migrations or setting an HTTP
+field, tenant GUC, or process environment variable.
+
+The database administrator registers the **selected TEST database** explicitly:
+
+```sql
+INSERT INTO public.account_test_data_policy
+  (singleton, database_oid, database_name, enabled)
+SELECT true, oid, datname, true
+FROM pg_catalog.pg_database WHERE datname = current_database();
+```
+
+The private user-service worker also requires `FASTAPI_ENV=test` and
+`ACCOUNT_CLOSURE_RETENTION=none`. Startup refuses a disagreement with the
+protected database policy. A copied policy does not enable another database:
+its database OID, name and PostgreSQL cluster identifier must match. The mode table is private; the
+worker locks the selected policy through a definer function rather than receiving
+permission to enable it. Disabling the policy waits for an in-flight erasure
+transaction's shared row lock.
+
+`controlplane_db.test_retention.purge_test_finances` runs only within the private
+coordinator's existing transaction and native original-closure/inventory proof.
+It deletes recent, unsettled TEST payer records despite accepted financial holds.
+The worker runs this stage before personal anonymization removes payer aliases.
+Exact tenant-bound billing/order/tax/lease/payout relationships and actual foreign
+keys determine dependent rows; arbitrary audit text does not establish ownership.
+Tenant/company billing records are preserved through retired creators. Unknown
+owners, cross-tenant dependencies, cycles and oversized batches remain pending.
+Live-provider rows are outside TEST erasure.
+
+No trigger or foreign-key constraint is disabled. Exact locked row images receive
+private, transaction-bound delete capabilities. Only existing financial deletion
+guards recognize them; ordinary production guards and AFTER-trigger inventory
+invalidation remain active. A deferred constraint forbids capabilities surviving
+commit. The caller records committed counts and rechecks fresh native owner
+proofs before marking the account complete. No provider calls, refunds, transfers
+or settlements occur in this helper. Physical model/storage cleanup still needs
+its own owner acknowledgments.
+
+PUBLIC receives no access to mode, capabilities or original guard definitions,
+and no execution of the private functions. The private TEST coordinator receives
+SELECT on financial sources and native bindings, plus execution of
+`account_lock_test_financial_sources`, `account_stage_test_delete`,
+`account_delete_test_financial_row`, `account_clear_test_delete_capabilities`
+and `account_reconcile_test_financial_bindings`. It has no financial source or
+binding writes and no capability-table access. Production workers need only the
+read-only mode check in addition to their existing authority.
+
+Database-owned routines read actual rows under native locks, repeat original
+payer/tenant and sandbox ancestry checks, and bind each capability to its
+subject, closure time, row image and current transaction. Dependent rows need an
+authorized native parent and an actual FK or explicit tenant-bound relationship.
+Even a compromised coordinator cannot insert capabilities or delete financial
+rows directly. The definer refuses remaining children before deletion, including
+CASCADE relationships to unknown physical owners. Source bindings are reconciled
+against live rows inside the same native authority. All new routines pin catalog
+lookup and put temporary schemas last. The public service rejects access to the
+private support state. Non-superuser worker startup rejects stale direct financial
+or capability privileges.
+
+Downgrade restores the exact saved native guard definitions. Disable TEST mode
+first, restore the payment-owner guards, then remove platform TEST support;
+removing the platform helper while owner guards still reference it is refused.
+No deployed database or provider is changed by package qualification.
+
+Stripe-backed billing requires independently recorded provider mode. Additive
+`platform_0082_stripe_mode` stores nullable `stripe_livemode` without expanding the
+legacy ORM mapping. Trusted payment adapters record only actual validated provider
+responses or original billing provenance; NULL remains unknown. Once recorded,
+the native trigger forbids changing or clearing the mode. TEST erasure rejects
+live or unproven Stripe IDs/metadata regardless of the TEST database marker.
+No provider IDs, process settings or caller metadata are guessed as sandbox.
+Legacy databases without the native column retain their existing payment writes.
+
+Existing Stripe-bearing rows without independently verified provider mode remain
+ineligible for TEST erasure. The payment owner may record actual validated
+provider observations; no migration guesses or backfills their sandbox status.

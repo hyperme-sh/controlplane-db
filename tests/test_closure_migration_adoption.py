@@ -40,7 +40,7 @@ def test_upgrade_reconciles_hardening_and_closure_and_preserves_worker_preflight
                     connection.execute(text("INSERT INTO tenants(id,name,is_active) VALUES(:id,'retained',true)"), {'id': uuid.uuid4()})
             migrations.upgrade(url)
             assert migrations.current_heads(url) == migrations.chain_heads()
-            assert migrations.chain_heads()['platform'] == 'platform_0079_closure_merge'
+            assert migrations.chain_heads()['platform'] == 'platform_0082_stripe_mode'
             with engine.begin() as connection:
                 connection.execute(text('SELECT public.account_check_closure_worker_installation()'))
                 assert connection.scalar(text("SELECT to_regclass('public.identity_retirements') IS NOT NULL"))
@@ -83,4 +83,57 @@ def test_hypermesh_lab_and_closure_histories_converge_without_rewriting(previous
             migrations.upgrade(url)
             assert migrations.current_heads(url) == migrations.chain_heads()
         finally:
+            engine.dispose()
+
+
+@pytest.mark.parametrize('previous', ['payment_service_0081_test_gc', 'payment_service_0081_location'])
+def test_test_guards_and_payout_location_histories_preserve_both_owners(previous):
+    with disposable_database() as url:
+        engine = create_engine(url)
+        tenant, host, revision = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        legacy_role = 'legacy_test_' + uuid.uuid4().hex
+        try:
+            with engine.begin() as connection:
+                # Build each actual former single-head image from its immutable
+                # migrations, rather than downgrading a merge into two heads.
+                for chain in migrations._ORDER:
+                    target = previous if chain == 'payment_service' else 'head'
+                    if chain == 'platform':
+                        target = ('platform_0079_closure_merge' if previous == 'payment_service_0081_location'
+                                  else 'platform_0080_test_retention')
+                    command.upgrade(migrations._config(migrations._ROOT, chain, connection), target)
+                if previous == 'payment_service_0081_test_gc':
+                    assert connection.scalar(text("SELECT to_regprocedure('public.account_lock_test_financial_sources(text,timestamptz)')")) is None
+                    assert connection.scalar(text("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='account_test_delete_capabilities'")) == 3
+                    connection.execute(text(f'CREATE ROLE {legacy_role} NOLOGIN NOSUPERUSER BYPASSRLS'))
+                    connection.execute(text(f'GRANT SELECT,INSERT,DELETE ON public.account_test_delete_capabilities TO {legacy_role}'))
+                    connection.execute(text(f'GRANT INSERT(transaction_id,relation,row_digest) ON public.account_test_delete_capabilities TO {legacy_role}'))
+                connection.execute(text("INSERT INTO tenants(id,name,is_active) VALUES(:t,'retained-payment-history',true)"), {'t': tenant})
+                if previous == 'payment_service_0081_location':
+                    connection.execute(text("INSERT INTO connect_payout_locations(tenant_id,host_org_id,revision,status) VALUES(:t,:h,:r,'pending')"), {'t': tenant, 'h': host, 'r': revision})
+            migrations.upgrade(url)
+            assert migrations.current_heads(url) == migrations.chain_heads()
+            assert migrations.chain_heads()['payment_service'] == 'payment_service_0082_test_merge'
+            with engine.begin() as connection:
+                assert connection.scalar(text("SELECT count(*) FROM tenants WHERE id=:t"), {'t': tenant}) == 1
+                assert connection.scalar(text("SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid='public.connect_payout_locations'::regclass")) is True
+                if previous == 'payment_service_0081_location':
+                    assert connection.scalar(text("SELECT revision FROM connect_payout_locations WHERE tenant_id=:t AND host_org_id=:h"), {'t': tenant, 'h': host}) == revision
+                definition = connection.scalar(text("SELECT pg_get_functiondef('public.connect_recipient_immutable()'::regprocedure)"))
+                assert definition.count('account_test_row_delete_allowed') == 1
+                assert connection.scalar(text('SELECT public.account_test_data_enabled()')) is False
+                assert connection.scalar(text("SELECT to_regprocedure('public.account_lock_test_financial_sources(text,timestamptz)') IS NOT NULL")) is True
+                assert connection.scalar(text("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='account_test_delete_capabilities'")) == 6
+                if previous == 'payment_service_0081_test_gc':
+                    assert connection.scalar(text("SELECT has_table_privilege(:role,'public.account_test_delete_capabilities','SELECT,INSERT,UPDATE,DELETE,TRUNCATE')"), {'role':legacy_role}) is False
+                    assert connection.scalar(text("SELECT has_any_column_privilege(:role,'public.account_test_delete_capabilities','SELECT,INSERT,UPDATE,REFERENCES')"), {'role':legacy_role}) is False
+                    assert connection.scalar(text("SELECT has_function_privilege(:role,'public.account_stage_test_delete(text,timestamptz,oid,text,oid,text)','EXECUTE')"), {'role':legacy_role}) is False
+                connection.execute(text('SELECT public.account_check_closure_worker_installation()'))
+            migrations.upgrade(url)
+            assert migrations.current_heads(url) == migrations.chain_heads()
+        finally:
+            with engine.begin() as connection:
+                if connection.scalar(text('SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname=:role)'), {'role':legacy_role}):
+                    connection.execute(text(f'DROP OWNED BY {legacy_role}'))
+                    connection.execute(text(f'DROP ROLE {legacy_role}'))
             engine.dispose()

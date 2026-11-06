@@ -1131,6 +1131,7 @@ def assert_subject_scope_delta(before, after):
 
 
 def assert_payment_financial_schema_delta(after):
+    assert_test_retention_schema_delta(after)
     postal = after['tables'].pop('connect_payout_locations')
     assert postal['policies'], "Postal evidence must remain tenant isolated"
     clock_tables = {'host_payout_addresses', 'connect_recipient_accounts', 'billing_tax_orders',
@@ -1360,3 +1361,100 @@ def test_retirement_downgrade_preserves_recorded_tombstones(record_kind):
             assert migrations.current_heads(url)['platform'] == 'platform_0059_account_lifecycles'
         finally:
             engine.dispose()
+
+
+def assert_test_retention_schema_delta(after):
+    billing = after['tables']['billing_records']
+    mode = [c for c in billing['columns'] if c[0]=='stripe_livemode']
+    assert mode == [['stripe_livemode','boolean',False,None,'','',None]]
+    billing['columns'] = [c for c in billing['columns'] if c not in mode]
+    triggers = [t for t in billing['triggers'] if t[0]=='billing_stripe_mode_immutable']
+    assert len(triggers)==1 and triggers[0][2]=='O'
+    assert 'BEFORE INSERT OR UPDATE ON public.billing_records' in triggers[0][1]
+    billing['triggers'] = [t for t in billing['triggers'] if t not in triggers]
+    expected = {
+        "account_test_data_policy": {
+            "singleton",
+            "database_oid",
+            "database_name",
+            "enabled",
+            "cluster_identifier",
+        },
+        "account_test_delete_capabilities": {
+            "transaction_id",
+            "relation",
+            "row_digest",
+            "source_subject",
+            "source_closed_at",
+            "row_tid",
+        },
+        "account_test_policy_originals": {"signature", "definition"},
+        "account_test_delete_guard_originals": {"signature", "definition"},
+    }
+    for name, columns in expected.items():
+        table = after["tables"].pop(name)
+        assert {c[0] for c in table["columns"]} == columns
+        assert table["rls"] == [True, True]
+        assert not table["policies"] and not table["column_grants"]
+        assert all(grant[0] == "OWNER" for grant in table["grants"])
+        if name == "account_test_delete_capabilities":
+            assert len(table["triggers"]) == 1
+            trigger = table["triggers"][0]
+            assert (
+                trigger[0] == "test_delete_capabilities_ephemeral" and trigger[2] == "O"
+            )
+            assert "DEFERRABLE INITIALLY DEFERRED" in trigger[1]
+        else:
+            assert not table["triggers"]
+    for signature in (
+        "account_test_data_enabled()",
+        "account_lock_test_data_policy()",
+        "account_test_row_delete_allowed(p_relation oid, p_row jsonb)",
+        "account_test_capabilities_ephemeral()",
+    ):
+        function = after["functions"].pop(signature)
+        assert "SECURITY DEFINER" in function["definition"]
+        assert "search_path TO 'pg_catalog'" in function["definition"]
+        assert "row_security TO 'off'" in function["definition"]
+        assert function["grants"] == [["OWNER", "EXECUTE", False]]
+    authority_names = {
+        "account_billing_stripe_mode_immutable",
+        "account_test_table_name",
+        "account_lock_test_financial_sources",
+        "account_test_read_row",
+        "account_test_scope",
+        "account_test_check_row",
+        "account_test_check_parties",
+        "account_test_edge",
+        "account_stage_test_delete",
+        "account_delete_test_financial_row",
+        "account_clear_test_delete_capabilities",
+        "account_test_json_mentions",
+        "account_reconcile_test_financial_bindings",
+    }
+    authority = {
+        key: value
+        for key, value in after["functions"].items()
+        if key.split("(")[0] in authority_names
+    }
+    assert {key.split("(")[0] for key in authority} == authority_names
+    assert len(authority) == len(authority_names)
+    for signature, function in authority.items():
+        assert "SECURITY DEFINER" in function["definition"]
+        assert "search_path TO 'pg_catalog', 'pg_temp'" in function["definition"]
+        assert "row_security TO 'off'" in function["definition"]
+        assert function["grants"] == [["OWNER", "EXECUTE", False]]
+        after["functions"].pop(signature)
+    for signature in (
+        "connect_recipient_immutable()",
+        "payment_payer_risk_expiry_guard()",
+        "tax_history_retained()",
+    ):
+        definition = after["functions"][signature]["definition"]
+        assert (
+            definition.count(
+                "public.account_test_row_delete_allowed(TG_RELID,to_jsonb(OLD))"
+            )
+            == 1
+        )
+        assert "TG_LEVEL='ROW' AND TG_OP='DELETE'" in definition
