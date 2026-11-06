@@ -1339,3 +1339,49 @@ def test_restricted_coordinator_cannot_forge_or_write_financial_authority(
             c.exec_driver_sql(f"DROP OWNED BY {role}")
             c.exec_driver_sql(f"DROP ROLE IF EXISTS {role}")
         engine.dispose()
+
+
+@pytest.mark.parametrize("ownership", ["same", "foreign_purchase", "foreign_entitlement"])
+def test_marketplace_dependencies_require_the_original_scoped_buyer(migrated_postgres, ownership):
+    import uuid
+    from controlplane_db.test_retention import purge_test_finances, TestRetentionUnavailable
+
+    engine = create_engine(migrated_postgres)
+    tenant, buyer, listing, purchase, entitlement = [uuid.uuid4() for _ in range(5)]
+    def marketplace(c, subject, user, payment, tenant):
+        c.execute(text("INSERT INTO users(id,tenant_id,first_name,last_name,email,gender,is_active,keycloak_sub) VALUES(:u,:t,'Other','Buyer',:email,'unspecified',true,:s)"),
+                  {"u":buyer,"t":tenant,"email":str(buyer)+"@example.invalid","s":str(buyer)})
+        c.execute(text("INSERT INTO marketplace_listings(id,tenant_id,seller_id,title,description,listing_type,price_type,is_public) VALUES(:l,:t,:u,'Fixture','Fixture','agent','fixed',false)"),
+                  {"l":listing,"t":tenant,"u":user})
+        c.execute(text("INSERT INTO marketplace_purchases(id,tenant_id,listing_id,buyer_id,status,billing_record_id) VALUES(:p,:t,:l,:u,'paid',:b)"),
+                  {"p":purchase,"t":tenant,"l":listing,"u":buyer if ownership=='foreign_purchase' else user,"b":payment})
+        c.execute(text("INSERT INTO ai_agent_entitlements(id,tenant_id,buyer_id,purchase_id,listing_id,license_key_sha256) VALUES(:e,:t,:u,:p,:l,repeat('a',64))"),
+                  {"e":entitlement,"t":tenant,"u":user if ownership=='same' else buyer,"p":purchase,"l":listing})
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(c, tenant=tenant, before_close=marketplace)
+            enable_test_policy(c)
+        if ownership=='same':
+            with engine.begin() as c:
+                receipt = purge_test_finances(c,subject,at)
+                assert receipt['tables']=={'billing_records':1,'marketplace_purchases':1,'ai_agent_entitlements':1}
+        else:
+            with pytest.raises(TestRetentionUnavailable,match='Foreign native TEST customer'):
+                with engine.begin() as c:
+                    purge_test_finances(c,subject,at)
+            # Bypass the Python planner: the native issuer independently refuses
+            # the foreign buyer even with an authorized exact parent capability.
+            with pytest.raises(DBAPIError,match='Foreign native TEST customer'):
+                with engine.begin() as c:
+                    parent_oid=parent_tid=None
+                    for table, identifier in [('billing_records',payment),('marketplace_purchases',purchase),('ai_agent_entitlements',entitlement)]:
+                        oid,tid=c.execute(text(f'SELECT tableoid,ctid::text FROM public.{table} WHERE id=:id'),{'id':identifier}).one()
+                        c.execute(text('SELECT public.account_stage_test_delete(:s,:at,CAST(:r AS oid),:tid,CAST(:parent AS oid),:parent_tid)'),
+                                  {'s':subject,'at':at,'r':oid,'tid':tid,'parent':parent_oid,'parent_tid':parent_tid})
+                        parent_oid,parent_tid=oid,tid
+            with engine.begin() as c:
+                for table, identifier in [('billing_records',payment),('marketplace_purchases',purchase),('ai_agent_entitlements',entitlement)]:
+                    assert c.scalar(text(f'SELECT count(*) FROM public.{table} WHERE id=:id'),{'id':identifier})==1
+                assert c.scalar(text('SELECT count(*) FROM account_test_delete_capabilities'))==0
+    finally:
+        engine.dispose()

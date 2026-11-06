@@ -461,6 +461,8 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
     # precede every delete without granting source UPDATE. Original
     # native AFTER triggers continue invalidating inventories/epochs normally.
     for (oid, locator), (data, _) in targets.items():
+        if data.get("buyer_id") is not None and data["buyer_id"] not in scoped_users.get(data.get("tenant_id"), set()):
+            raise TestRetentionUnavailable("Foreign native TEST customer reference")
         if relations[oid] in {
             "hypermesh_leases",
             "hypermesh_orders",

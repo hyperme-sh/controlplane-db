@@ -183,7 +183,8 @@ BEGIN
     RAISE EXCEPTION 'Shared native billing ownership' USING ERRCODE='42501'; END IF;
   PERFORM public.account_test_check_row(name,data);
   PERFORM public.account_test_check_parties(p_subject,name,data,users);
-  IF (data ? 'user_id' AND data->>'user_id' IS NOT NULL AND NOT data->>'user_id'=ANY(users))
+  IF (data ? 'buyer_id' AND data->>'buyer_id' IS NOT NULL AND NOT data->>'buyer_id'=ANY(users))
+    OR (data ? 'user_id' AND data->>'user_id' IS NOT NULL AND NOT data->>'user_id'=ANY(users))
     OR (data ? 'owner_sub' AND data->>'owner_sub' IS NOT NULL AND NOT data->>'owner_sub'=ANY(aliases)) THEN
     RAISE EXCEPTION 'Foreign native TEST customer reference' USING ERRCODE='42501'; END IF;
   IF p_parent IS NULL THEN

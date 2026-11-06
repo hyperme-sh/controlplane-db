@@ -285,6 +285,13 @@ material.
 
 ## TEST financial retention
 
+Platform revision `platform_0081_test_authority` installs private erasure
+authority for both fresh databases and databases already on
+`platform_0080_test_retention`. The original consumed migration stays unchanged.
+Upgrade removes legacy non-owner capability table and column grants; reapply a
+reviewed worker role plan and remove old direct financial writes before startup.
+
+
 Platform `platform_0080_test_retention` and payment
 `payment_service_0081_test_gc` add a private, database-bound TEST policy. They
 leave production retention clocks and preservation/settlement rules in place.
