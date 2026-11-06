@@ -5,11 +5,11 @@
     "controlplane-db": {
       "version": "0.1.0",
       "contract": "contract.json",
-      "contract_sha256": "5dfa6f2ff6a034aede72891f76bdedc0fa460c6efce1896524f9e15ecdd20ac4",
+      "contract_sha256": "fca730bc38b63964aba25185e5f8ef3f1e6dfba411a9b86122505317b2acefeb",
       "artifact": {
         "kind": "package",
-        "uri": "urn:sha256:d00282f4248344e72cfd4965bd6a64a34e97038eb870cd4fcca4cead1d9d09b3",
-        "sha256": "d00282f4248344e72cfd4965bd6a64a34e97038eb870cd4fcca4cead1d9d09b3"
+        "uri": "urn:sha256:09bc3a3b1e5b810f30086bcff5b8fd8815b6f41c652009ce36ff315265c9750f",
+        "sha256": "09bc3a3b1e5b810f30086bcff5b8fd8815b6f41c652009ce36ff315265c9750f"
       }
     }
   }

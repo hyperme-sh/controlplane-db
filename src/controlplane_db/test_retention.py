@@ -337,6 +337,25 @@ def purge_test_finances(connection, subject, closed_at, *, limit=100):
                     actor is not None and actor not in local_aliases
                 ):
                     raise TestRetentionUnavailable("Conflicting native payer ownership")
+            if name == "connect_access_grants":
+                # Grant/result journals inherit provider mode from their
+                # original recipient; neither child carries livemode itself.
+                mode = _sql(
+                    connection,
+                    """SELECT r.livemode FROM public.connect_access_grants g
+                    JOIN public.connect_access_states s
+                      ON (s.tenant_id,s.host_org_id)=(g.tenant_id,g.host_org_id)
+                    JOIN public.connect_recipient_accounts r
+                      ON (r.tenant_id,r.host_org_id)=(s.tenant_id,s.host_org_id)
+                      AND r.attempt_id=g.enrollment_attempt_id
+                      AND r.stripe_account_id=g.account_id
+                    WHERE g.ctid=CAST(CAST(:tid AS text) AS tid)""",
+                    tid=locator,
+                ).scalar_one_or_none()
+                if mode is not False:
+                    raise TestRetentionUnavailable(
+                        "Live or unresolved Connect ancestry is not TEST data"
+                    )
             key = (by_name[name], locator)
             if key not in targets:
                 targets[key] = (data, 0)

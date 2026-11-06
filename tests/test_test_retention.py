@@ -985,3 +985,110 @@ def test_ineligible_tenant_rows_cannot_starve_a_bounded_financial_batch(
             )
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "livemode,original_recipient", [(False, True), (True, True), (False, False)]
+)
+def test_connect_grants_and_results_require_the_original_sandbox_recipient(
+    migrated_postgres, livemode, original_recipient
+):
+    import uuid
+    from controlplane_db.test_retention import (
+        purge_test_finances,
+        TestRetentionUnavailable,
+    )
+
+    engine = create_engine(migrated_postgres)
+    grant, host, attempt = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+
+    def connect(c, subject, user, payment, tenant):
+        c.execute(
+            text(
+                "INSERT INTO connect_recipient_accounts(tenant_id,host_org_id,livemode,live_approval_reference,attempt_id,attempted_at,legal_type,country,state,stripe_account_id,creation_status,initiated_by_sub) VALUES(:t,:h,:live,:approval,:a,transaction_timestamp(),'individual','US','WA','acct_TestOwner','bound',:initiator)"
+            ),
+            {
+                "t": tenant,
+                "h": host,
+                "live": livemode,
+                "approval": "fixture-live-approval" if livemode else None,
+                "a": attempt,
+                "initiator": str(uuid.uuid4()),
+            },
+        )
+        c.execute(
+            text(
+                "UPDATE connect_access_states SET policy='embedded-api/v1',epoch=epoch+1 WHERE tenant_id=:t AND host_org_id=:h"
+            ),
+            {"t": tenant, "h": host},
+        )
+        c.execute(
+            text(
+                "INSERT INTO connect_access_grants(id,tenant_id,host_org_id,enrollment_attempt_id,platform_id,account_id,owner_sub,member_id,issuer_session,purpose,policy,policy_hash,epoch,parameters,idempotency_key,created_at) VALUES(:g,:t,:h,:a,'acct_TestPlatform',:account,:s,'fixture-member','fixture-session','view','embedded-api/v1',repeat('a',64),2,'{}'::jsonb,:key,transaction_timestamp())"
+            ),
+            {
+                "g": grant,
+                "t": tenant,
+                "h": host,
+                "a": attempt,
+                "s": subject,
+                "key": str(grant),
+                "account": "acct_TestOwner"
+                if original_recipient
+                else "acct_DifferentOwner",
+            },
+        )
+        c.execute(
+            text(
+                "INSERT INTO connect_access_results(grant_id,tenant_id,expires_at,observed_at,request_id,permissions) VALUES(:g,:t,now()+interval '1 hour',now(),'req_fixture','{}'::jsonb)"
+            ),
+            {"g": grant, "t": tenant},
+        )
+
+    try:
+        with engine.begin() as c:
+            subject, at, user, payment = seed_closed_payer(
+                c, tenant=uuid.uuid4(), before_close=connect
+            )
+            enable_test_policy(c)
+        refused = livemode or not original_recipient
+        if refused:
+            with pytest.raises(TestRetentionUnavailable, match="Connect ancestry"):
+                with engine.begin() as c:
+                    purge_test_finances(c, subject, at)
+        else:
+            with engine.begin() as c:
+                receipt = purge_test_finances(c, subject, at)
+                assert receipt["complete"] is True
+                assert receipt["tables"] == {
+                    "billing_records": 1,
+                    "connect_access_grants": 1,
+                    "connect_access_results": 1,
+                }
+        with engine.begin() as c:
+            assert c.scalar(
+                text("SELECT count(*) FROM connect_access_grants WHERE id=:g"),
+                {"g": grant},
+            ) == int(refused)
+            assert c.scalar(
+                text("SELECT count(*) FROM connect_access_results WHERE grant_id=:g"),
+                {"g": grant},
+            ) == int(refused)
+            assert c.scalar(
+                text("SELECT count(*) FROM billing_records WHERE id=:p"), {"p": payment}
+            ) == int(refused)
+            assert (
+                c.scalar(
+                    text(
+                        "SELECT count(*) FROM connect_recipient_accounts WHERE host_org_id=:h"
+                    ),
+                    {"h": host},
+                )
+                == 1
+            )
+            assert (
+                c.scalar(text("SELECT count(*) FROM account_test_delete_capabilities"))
+                == 0
+            )
+    finally:
+        engine.dispose()
