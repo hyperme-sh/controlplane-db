@@ -1131,6 +1131,8 @@ def assert_subject_scope_delta(before, after):
 
 
 def assert_payment_financial_schema_delta(after):
+    postal = after['tables'].pop('connect_payout_locations')
+    assert postal['policies'], "Postal evidence must remain tenant isolated"
     clock_tables = {'host_payout_addresses', 'connect_recipient_accounts', 'billing_tax_orders',
         'billing_tax_calculations', 'connect_bank_approvals',
         'connect_reversal_exposure_observations', 'connect_control_proofs', 'payer_mismatch_accounts'}
