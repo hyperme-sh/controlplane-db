@@ -384,3 +384,10 @@ Provider-mode observations preserve the original production retention clock.
 Forward platform_0084_stripe_clock excludes only stripe_livemode from monetary
 activity comparison; real money changes still advance the seven-year clock and
 native financial epochs still invalidate old inventory proofs.
+
+The platform_0085_stripe_merge head converges both independently consumed Stripe
+guard histories without replacing the merged ancestry migration. Native upgrades
+start at each original single head, preserve tenant/billing rows, repeat as a
+no-op, and roll back through the genuine common predecessor before rebuilding
+either history. Scope checks and exact guard restoration work with or without
+the retained pre0083 function alias.

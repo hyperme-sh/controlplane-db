@@ -40,7 +40,7 @@ def test_upgrade_reconciles_hardening_and_closure_and_preserves_worker_preflight
                     connection.execute(text("INSERT INTO tenants(id,name,is_active) VALUES(:id,'retained',true)"), {'id': uuid.uuid4()})
             migrations.upgrade(url)
             assert migrations.current_heads(url) == migrations.chain_heads()
-            assert migrations.chain_heads()['platform'] == 'platform_0084_stripe_clock'
+            assert migrations.chain_heads()['platform'] == 'platform_0085_stripe_merge'
             with engine.begin() as connection:
                 connection.execute(text('SELECT public.account_check_closure_worker_installation()'))
                 assert connection.scalar(text("SELECT to_regclass('public.identity_retirements') IS NOT NULL"))
@@ -136,4 +136,40 @@ def test_test_guards_and_payout_location_histories_preserve_both_owners(previous
                 if connection.scalar(text('SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname=:role)'), {'role':legacy_role}):
                     connection.execute(text(f'DROP OWNED BY {legacy_role}'))
                     connection.execute(text(f'DROP ROLE {legacy_role}'))
+            engine.dispose()
+
+
+@pytest.mark.parametrize('previous',['platform_0084_stripe_clock','platform_0083_stripe_ancestry'])
+def test_independent_stripe_guard_histories_preserve_data_and_downgrade(previous):
+    with disposable_database() as url:
+        engine=create_engine(url)
+        tenant,payment=uuid.uuid4(),uuid.uuid4()
+        try:
+            with engine.begin() as c:
+                for chain in migrations._ORDER:
+                    command.upgrade(migrations._config(migrations._ROOT,chain,c),previous if chain=='platform' else 'head')
+                c.execute(text("INSERT INTO tenants(id,name,is_active) VALUES(:t,'stripe-history',true)"),{'t':tenant})
+                c.execute(text("INSERT INTO billing_records(id,tenant_id,scope,actor,payment_type,currency,amount,status,metadata) VALUES(:p,:t,'invoice','tenant','card','usd',100,'pending','{}'::jsonb)"),{'p':payment,'t':tenant})
+                original=c.scalar(text('SELECT to_jsonb(b) FROM billing_records b WHERE id=:p'),{'p':payment})
+            for attempt in range(2):
+                migrations.upgrade(url)
+                assert migrations.current_heads(url)==migrations.chain_heads()
+                assert migrations.chain_heads()['platform']=='platform_0085_stripe_merge'
+                with engine.begin() as c:
+                    assert c.scalar(text('SELECT to_jsonb(b) FROM billing_records b WHERE id=:p'),{'p':payment})==original
+                    assert c.scalar(text("SELECT to_regprocedure('public.account_test_stripe_metadata(jsonb)') IS NOT NULL")) is True
+                    assert c.scalar(text("SELECT to_regprocedure('public.account_test_check_row_pre0083(text,jsonb)') IS NOT NULL")) is True
+                    assert c.scalar(text('SELECT public.account_test_data_enabled()')) is False
+                    assert c.scalar(text("SELECT count(*) FROM account_test_policy_originals WHERE signature LIKE 'platform_0084_stripe_clock:%'"))==1
+                # A merge splits into both parents on one-step downgrade.
+                # Roll back to their genuine common predecessor, then rebuild
+                # the selected original single-head image without stamping.
+                with engine.begin() as c:
+                    command.downgrade(migrations._config(migrations._ROOT,'platform',c),'platform_0082_stripe_mode')
+                assert migrations.current_heads(url)['platform']=='platform_0082_stripe_mode'
+                with engine.begin() as c:
+                    command.upgrade(migrations._config(migrations._ROOT,'platform',c),previous)
+                assert migrations.current_heads(url)['platform']==previous
+            migrations.upgrade(url)
+        finally:
             engine.dispose()

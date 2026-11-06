@@ -1428,6 +1428,7 @@ def assert_test_retention_schema_delta(after):
         "account_test_read_row",
         "account_test_scope",
         "account_test_check_row",
+        "account_test_check_row_pre0083",
         "account_test_check_parties",
         "account_test_edge",
         "account_stage_test_delete",
