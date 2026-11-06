@@ -21,6 +21,10 @@ uv export --frozen --no-emit-project --format requirements-txt --output-file "$s
 uv venv --python 3.13 "$scratch/venv"
 uv pip sync --python "$scratch/venv/bin/python" "$scratch/requirements.txt"
 uv pip install --python "$scratch/venv/bin/python" --no-deps "$scratch"/dist/*.whl
+# The runtime wheel omits owner migration bundles. Install them from the sdist
+# the way an owner image does; this does not change the wheel digest.
+package_dir=$("$scratch/venv/bin/python" -I -c 'import controlplane_db, pathlib; print(pathlib.Path(controlplane_db.__file__).resolve().parent)')
+uv run --frozen python scripts/install_owner_bundle.py "$scratch"/dist/*.tar.gz "$package_dir"
 cp -R tests "$scratch/"
 (cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null tests --junitxml="$scratch/wheel.xml")
 # Rebuild from the sdist; a checkout must not supply omitted package files.
@@ -35,6 +39,8 @@ uv run --frozen python scripts/verify_wheel.py "$scratch/rebuilt"
 uv run --frozen python scripts/export_release_contract.py "$scratch"/rebuilt/*.whl --output "$scratch/rebuilt-contract"
 cmp "$scratch/contract/contract.json" "$scratch/rebuilt-contract/contract.json"
 uv pip install --python "$scratch/venv/bin/python" --no-deps --reinstall "$scratch"/rebuilt/*.whl
+package_dir=$("$scratch/venv/bin/python" -I -c 'import controlplane_db, pathlib; print(pathlib.Path(controlplane_db.__file__).resolve().parent)')
+uv run --frozen python scripts/install_owner_bundle.py "$scratch"/dist/*.tar.gz "$package_dir"
 (cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null tests --junitxml="$scratch/sdist.xml")
 
 # Retain the exact validated bytes for the release channel; never rebuild them.
