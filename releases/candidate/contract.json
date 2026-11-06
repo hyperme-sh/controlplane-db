@@ -119,6 +119,7 @@
     "controlplane_db/migration_chains/hypermesh/versions/0085_personal_device_reviewers.py": "4d2855b00d55fc8766f3c102b5bf1040d3aebf11890032bdb94f33fef2148313",
     "controlplane_db/migration_chains/hypermesh/versions/0086_financial_state.py": "3d4bf001cc2e095baeed2598b633595e1e59aa35c5f2aac0387a68000da90363",
     "controlplane_db/migration_chains/hypermesh/versions/0087_closure_lab_merge.py": "509f69484b9485a88be2f74f5b6f1ae96a7a4d6b89e52fc46559df85c8fa41de",
+    "controlplane_db/migration_chains/hypermesh/versions/0088_safe_tenant_guc.py": "3fa43d7f39b2beca4be3a5e11fd4b08feac1dcb4b7d25872df3a45f1b8fe9e35",
     "controlplane_db/migration_chains/hypermesh/versions/baseline.sql": "9cb2c982ecba9562709da364a6808c784507328a24add8a64401042fc7e1e306",
     "controlplane_db/migration_chains/manifest.json": "1145dd2392d2fa7d41d8ac260762418d74a3af4bc9b9c3f92989959ab15b259c",
     "controlplane_db/migration_chains/payment_service/versions/0053_baseline.py": "7e0ab592dd4e48411e98e87468288495ea768df7d3bb577417766cc0e144b1da",

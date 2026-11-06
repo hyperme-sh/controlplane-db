@@ -42,7 +42,7 @@ def test_report_and_enforcement_upgrade_and_tenant_rls():
         migrations.upgrade(url, chains=('hypermesh', 'aiuditor'))
         migrations.upgrade(url, chains=('hypermesh', 'aiuditor'))
         heads = migrations.current_heads(url)
-        assert heads['hypermesh'] == 'hypermesh_0087_closure_lab_merge'
+        assert heads['hypermesh'] == 'hypermesh_0088_safe_tenant_guc'
         assert heads['aiuditor'] == 'aiuditor_0058_enforcement'
         assert 'lab_binding' in {c['name'] for c in inspect(engine).get_columns('hypermesh_jobs')}
         assert {'enforcement_attempts','enforcement_completed_at'} <= {
