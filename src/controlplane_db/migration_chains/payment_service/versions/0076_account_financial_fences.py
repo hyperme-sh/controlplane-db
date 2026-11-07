@@ -217,6 +217,13 @@ def upgrade():
         "DROP TRIGGER tax_calculation_progress ON public.billing_tax_calculations"
     )
     op.execute(PROGRESS)
+    backfill_tables = (
+        "host_payout_addresses", "connect_bank_approvals",
+        "connect_reversal_exposure_observations", "connect_control_proofs",
+        "connect_recipient_accounts", "billing_tax_orders", "billing_tax_calculations",
+    )
+    for table in backfill_tables:
+        op.execute(f"ALTER TABLE public.{table} NO FORCE ROW LEVEL SECURITY")
     # Historical timestamps remain their own anchor, never rollout/closure time.
     # An unobserved legacy recipient binding has no trustworthy final timestamp.
     # Keep that clock unknown; erasure must require reconciliation, not guess it.
@@ -245,6 +252,8 @@ def upgrade():
     op.execute("""UPDATE billing_tax_calculations c SET financial_activity_at=greatest(c.attempted_at,o.financial_activity_at),
       financial_retain_until=((greatest(c.attempted_at,o.financial_activity_at) AT TIME ZONE 'UTC')+interval '7 years') AT TIME ZONE 'UTC'
       FROM billing_tax_orders o WHERE o.revision_id=c.revision_id AND o.tenant_id=c.tenant_id AND o.financial_activity_at IS NOT NULL""")
+    for table in backfill_tables:
+        op.execute(f"ALTER TABLE public.{table} FORCE ROW LEVEL SECURITY")
     op.execute(
         "CREATE TRIGGER connect_bank_approvals_update BEFORE UPDATE ON public.connect_bank_approvals FOR EACH ROW EXECUTE FUNCTION public.connect_recipient_immutable()"
     )

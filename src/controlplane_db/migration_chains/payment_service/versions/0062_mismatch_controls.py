@@ -27,7 +27,9 @@ def upgrade():
                    AND (rolsuper OR rolbypassrls OR rolcanlogin)) THEN
             RAISE EXCEPTION 'payment_mismatch_actor must be a restricted NOLOGIN role';
         END IF;
-        EXECUTE format('GRANT payment_mismatch_actor TO %I', current_user);
+        IF NOT pg_has_role(current_user, 'payment_mismatch_actor', 'MEMBER') THEN
+            EXECUTE format('GRANT payment_mismatch_actor TO %I', current_user);
+        END IF;
     END $$;""")
     op.create_table(
         "payer_mismatch_accounts",

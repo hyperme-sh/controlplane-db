@@ -24,6 +24,7 @@ def upgrade():
       CREATE TRIGGER billing_stripe_mode_immutable BEFORE INSERT OR UPDATE ON public.billing_records
         FOR EACH ROW EXECUTE FUNCTION public.account_billing_stripe_mode_immutable();
     """)
+    op.execute("ALTER TABLE public.account_test_policy_originals NO FORCE ROW LEVEL SECURITY")
     connection = op.get_bind()
     definition = connection.scalar(sa.text("SELECT pg_get_functiondef(CAST(:s AS regprocedure))"), {"s":_SIGNATURE})
     original_definition = definition
@@ -46,6 +47,7 @@ def upgrade():
     RAISE EXCEPTION 'Immutable Stripe sandbox provenance required' USING ERRCODE='42501'; END IF;
   IF (p_data ? 'livemode'"""
     connection.exec_driver_sql(definition.replace(anchor,guard),execution_options={"no_parameters":True})
+    op.execute("ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY")
 
 
 def downgrade():
@@ -57,6 +59,7 @@ def downgrade():
       IF public.account_test_data_enabled() THEN
         RAISE EXCEPTION 'Disable TEST policy before removing Stripe mode protection'; END IF;
     END $$""")
+    op.execute("ALTER TABLE public.account_test_policy_originals NO FORCE ROW LEVEL SECURITY")
     connection=op.get_bind()
     definition=connection.scalar(sa.text("SELECT definition FROM public.account_test_policy_originals WHERE signature=:s"),{"s":_SIGNATURE})
     if not definition:raise RuntimeError("Original TEST row guard required")
@@ -65,3 +68,4 @@ def downgrade():
     op.execute("DROP TRIGGER billing_stripe_mode_immutable ON public.billing_records")
     op.execute("DROP FUNCTION public.account_billing_stripe_mode_immutable()")
     op.execute("ALTER TABLE public.billing_records DROP COLUMN stripe_livemode")
+    op.execute("ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY")

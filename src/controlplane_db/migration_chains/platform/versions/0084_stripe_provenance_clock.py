@@ -12,6 +12,7 @@ _BACKUP = "platform_0084_stripe_clock:" + _SIGNATURE
 
 def upgrade():
     op.execute("SELECT public.account_lock_financial_inventory_schema()")
+    op.execute("ALTER TABLE public.account_test_policy_originals NO FORCE ROW LEVEL SECURITY")
     connection=op.get_bind()
     definition=connection.scalar(sa.text("SELECT pg_get_functiondef(CAST(:s AS regprocedure))"),{'s':_SIGNATURE})
     before="ARRAY['updated_at','financial_activity_at','financial_retain_until','metadata']"
@@ -20,12 +21,15 @@ def upgrade():
         raise RuntimeError("Expected original billing financial clock")
     connection.execute(sa.text("INSERT INTO public.account_test_policy_originals VALUES(:s,:d)"),{'s':_BACKUP,'d':definition})
     connection.exec_driver_sql(definition.replace(before,after),execution_options={'no_parameters':True})
+    op.execute("ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY")
 
 
 def downgrade():
     op.execute("SELECT public.account_lock_financial_inventory_schema()")
+    op.execute("ALTER TABLE public.account_test_policy_originals NO FORCE ROW LEVEL SECURITY")
     connection=op.get_bind()
     definition=connection.scalar(sa.text("SELECT definition FROM public.account_test_policy_originals WHERE signature=:s"),{'s':_BACKUP})
     if not definition:raise RuntimeError("Original billing financial clock required")
     connection.exec_driver_sql(definition,execution_options={'no_parameters':True})
     connection.execute(sa.text("DELETE FROM public.account_test_policy_originals WHERE signature=:s"),{'s':_BACKUP})
+    op.execute("ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY")

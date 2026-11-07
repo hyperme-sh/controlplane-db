@@ -75,7 +75,6 @@ def upgrade():
     op.execute("""CREATE TABLE public.account_test_policy_originals (
       signature text PRIMARY KEY, definition text NOT NULL);
       ALTER TABLE public.account_test_policy_originals ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY;
       REVOKE ALL ON public.account_test_policy_originals FROM PUBLIC;
     """)
     connection = op.get_bind()
@@ -104,15 +103,18 @@ def upgrade():
         connection.exec_driver_sql(
             definition.replace(before, after), execution_options={"no_parameters": True}
         )
+    op.execute("ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY")
 
 
 def downgrade():
     op.execute("SELECT public.account_lock_financial_inventory_schema()")
+    op.execute("ALTER TABLE public.account_test_data_policy NO FORCE ROW LEVEL SECURITY")
     op.execute("""DO $$ BEGIN IF EXISTS(SELECT 1 FROM public.account_test_data_policy WHERE enabled) THEN
       RAISE EXCEPTION 'Disable TEST policy before removing its support'; END IF; END $$""")
     op.execute("""DO $$ BEGIN IF to_regclass('public.account_test_delete_guard_originals') IS NOT NULL THEN
       RAISE EXCEPTION 'Restore native owner delete guards before removing TEST support';
       END IF; END $$""")
+    op.execute("ALTER TABLE public.account_test_policy_originals NO FORCE ROW LEVEL SECURITY")
     connection = op.get_bind()
     for definition in connection.scalars(
         sa.text(

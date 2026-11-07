@@ -30,6 +30,7 @@ def upgrade():
       END $$;
       REVOKE ALL ON FUNCTION public.account_test_stripe_metadata(jsonb) FROM PUBLIC;
     """)
+    op.execute("ALTER TABLE public.account_test_policy_originals NO FORCE ROW LEVEL SECURITY")
     connection=op.get_bind()
     target = ('public.account_test_check_row_pre0083(text,jsonb)'
               if connection.scalar(sa.text("SELECT to_regprocedure('public.account_test_check_row_pre0083(text,jsonb)') IS NOT NULL"))
@@ -42,12 +43,14 @@ def upgrade():
     connection.execute(sa.text('INSERT INTO public.account_test_policy_originals VALUES(:s,:d)'),{'s':_BACKUP,'d':definition})
     definition=definition.replace('DECLARE mode boolean;','DECLARE mode boolean; billing jsonb;').replace(previous,replacement)
     connection.exec_driver_sql(definition,execution_options={'no_parameters':True})
+    op.execute("ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY")
 
 
 def downgrade():
     op.execute("SELECT public.account_lock_financial_inventory_schema()")
     op.execute("""DO $$ BEGIN IF public.account_test_data_enabled() THEN
       RAISE EXCEPTION 'Disable TEST policy before removing Stripe scope protection'; END IF; END $$""")
+    op.execute("ALTER TABLE public.account_test_policy_originals NO FORCE ROW LEVEL SECURITY")
     connection=op.get_bind()
     definition=connection.scalar(sa.text('SELECT definition FROM public.account_test_policy_originals WHERE signature=:s'),{'s':_BACKUP})
     if not definition:raise RuntimeError('Original Stripe billing guard required')
@@ -63,3 +66,4 @@ def downgrade():
     connection.exec_driver_sql(definition,execution_options={'no_parameters':True})
     connection.execute(sa.text('DELETE FROM public.account_test_policy_originals WHERE signature=:s'),{'s':_BACKUP})
     op.execute('DROP FUNCTION public.account_test_stripe_metadata(jsonb)')
+    op.execute("ALTER TABLE public.account_test_policy_originals FORCE ROW LEVEL SECURITY")

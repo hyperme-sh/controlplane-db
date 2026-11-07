@@ -44,6 +44,10 @@ def upgrade():
           public.usdc_deposit_addresses, public.usdc_ledger_entries,
           public.usdc_ledger_postings IN ACCESS EXCLUSIVE MODE
     """)
+    # The owning migrator must inspect every row, including other tenants.
+    # The locks cover both this guard and the drop; failure rolls the DDL back.
+    for table in TABLES:
+        op.execute(f"ALTER TABLE public.{table} NO FORCE ROW LEVEL SECURITY")
     op.execute("""
         DO $$ BEGIN
           IF EXISTS (SELECT 1 FROM public.onramp_sessions)

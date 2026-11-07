@@ -25,3 +25,12 @@ PostgreSQL. Source, wheel, and rebuilt-sdist checks exercise current generic
 budget transaction and tenant boundaries. The same command runs the historical
 upgrade tests from this checkout. Those history results do not replace the
 current package qualification.
+
+For managed PostgreSQL rehearsals, bootstrap the database and grant its migrator
+USAGE and CREATE on the database's public schema. Precreate the restricted
+`payment_mismatch_actor` NOLOGIN role and grant membership to the payment
+migrator. Runtime logins must remain separate from migration ownership.
+The platform and payment upgrade tests exercise a table-owning migrator without
+CREATEROLE, superuser or BYPASSRLS. Historical backfills run under transactional
+table locks and restore forced RLS before commit. Retiring the old custody
+schema still requires every custody table to be empty.

@@ -20,9 +20,11 @@ def upgrade():
     # Existing native grants keep their fences; no new owner is inferred from
     # an ownerless pre-upgrade enabled state. Require explicit reactivation.
     op.execute("SET LOCAL row_security = off")
+    op.execute("ALTER TABLE public.connect_access_states NO FORCE ROW LEVEL SECURITY")
     op.execute(
         "UPDATE connect_access_states SET enabled=false, epoch=epoch+1, lifecycle=jsonb_build_object('migration_disabled', true) WHERE policy='embedded-api/v1' AND enabled"
     )
+    op.execute("ALTER TABLE public.connect_access_states FORCE ROW LEVEL SECURITY")
     op.create_table(
         "connect_ended_sessions",
         sa.Column("session_key", sa.String(64), primary_key=True),
