@@ -122,3 +122,22 @@ def test_nonempty_custody_refuses_retirement_and_restores_forced_rls(
                 "SELECT relforcerowsecurity FROM pg_class WHERE oid='public.usdc_deposit_addresses'::regclass"
             )
         )
+
+
+def test_restricted_owner_resumes_at_0079_with_function_validation(restricted_database):
+    url, owner, _ = restricted_database
+    with owner.begin() as conn:
+        command.upgrade(
+            migrations._config(migrations._ROOT, "platform", conn),
+            "platform_0079_closure_merge",
+        )
+    owner.dispose()
+    with owner.begin() as conn:
+        assert conn.scalar(text("SHOW check_function_bodies")) == "on"
+        command.upgrade(migrations._config(migrations._ROOT, "platform", conn), "head")
+        for table in ("account_test_data_policy", "account_test_delete_capabilities"):
+            assert conn.scalar(
+                text("SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid=to_regclass(:name)"),
+                {"name": "public." + table},
+            )
+    assert migrations.current_heads(url)["platform"] == migrations.chain_heads()["platform"]

@@ -17,13 +17,11 @@ def upgrade():
       enabled boolean NOT NULL DEFAULT false,
       cluster_identifier text NOT NULL DEFAULT ((pg_catalog.pg_control_system()).system_identifier::text));
       ALTER TABLE public.account_test_data_policy ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE public.account_test_data_policy FORCE ROW LEVEL SECURITY;
       REVOKE ALL ON public.account_test_data_policy FROM PUBLIC;
       CREATE TABLE public.account_test_delete_capabilities (
         transaction_id text NOT NULL, relation oid NOT NULL, row_digest bytea NOT NULL,
         PRIMARY KEY(transaction_id,relation,row_digest));
       ALTER TABLE public.account_test_delete_capabilities ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE public.account_test_delete_capabilities FORCE ROW LEVEL SECURITY;
       REVOKE ALL ON public.account_test_delete_capabilities FROM PUBLIC;
     """)
     op.execute("""CREATE FUNCTION public.account_test_data_enabled() RETURNS boolean
@@ -72,6 +70,10 @@ def upgrade():
       FOR EACH ROW EXECUTE FUNCTION public.account_test_capabilities_ephemeral();
     """)
 
+    # PostgreSQL validates SQL-language function bodies on a restored connection.
+    # Apply FORCE after the owner has defined the functions, in this transaction.
+    op.execute("ALTER TABLE public.account_test_data_policy FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE public.account_test_delete_capabilities FORCE ROW LEVEL SECURITY")
     op.execute("""CREATE TABLE public.account_test_policy_originals (
       signature text PRIMARY KEY, definition text NOT NULL);
       ALTER TABLE public.account_test_policy_originals ENABLE ROW LEVEL SECURITY;
