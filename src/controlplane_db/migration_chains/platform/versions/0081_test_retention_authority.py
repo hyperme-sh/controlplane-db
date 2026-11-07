@@ -29,10 +29,12 @@ def upgrade():
     # Lock out both policy changes and old coordinator capability writes while
     # replacing authority. No transaction-bound capabilities may be carried in.
     op.execute("LOCK TABLE public.account_test_data_policy, public.account_test_delete_capabilities IN ACCESS EXCLUSIVE MODE")
+    op.execute("ALTER TABLE public.account_test_delete_capabilities NO FORCE ROW LEVEL SECURITY")
     op.execute("""DO $$ BEGIN
       IF EXISTS(SELECT 1 FROM public.account_test_delete_capabilities) THEN
         RAISE EXCEPTION 'Finish TEST capability transactions before upgrading authority'; END IF;
     END $$""")
+    op.execute("ALTER TABLE public.account_test_delete_capabilities FORCE ROW LEVEL SECURITY")
     op.execute("""ALTER TABLE public.account_test_delete_capabilities
       ADD COLUMN source_subject text, ADD COLUMN source_closed_at timestamptz,
       ADD COLUMN row_tid text""")
@@ -78,12 +80,16 @@ def upgrade():
 def downgrade():
     op.execute("SELECT public.account_lock_financial_inventory_schema()")
     op.execute("LOCK TABLE public.account_test_data_policy, public.account_test_delete_capabilities IN ACCESS EXCLUSIVE MODE")
+    op.execute("ALTER TABLE public.account_test_delete_capabilities NO FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE public.account_test_data_policy NO FORCE ROW LEVEL SECURITY")
     op.execute("""DO $$ BEGIN
       IF EXISTS(SELECT 1 FROM public.account_test_data_policy WHERE enabled) THEN
         RAISE EXCEPTION 'Disable TEST policy before removing erasure authority'; END IF;
       IF EXISTS(SELECT 1 FROM public.account_test_delete_capabilities) THEN
         RAISE EXCEPTION 'Finish TEST capabilities before removing authority'; END IF;
     END $$""")
+    op.execute("ALTER TABLE public.account_test_data_policy FORCE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE public.account_test_delete_capabilities FORCE ROW LEVEL SECURITY")
     for signature in reversed(_AUTHORITY_FUNCTIONS):
         op.execute("DROP FUNCTION public." + signature)
     op.execute("""ALTER TABLE public.account_test_delete_capabilities

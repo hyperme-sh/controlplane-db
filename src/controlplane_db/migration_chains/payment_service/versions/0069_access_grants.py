@@ -153,11 +153,14 @@ def upgrade():
             "jsonb_typeof(money_operations) = 'object'", name="ck_access_money"
         ),
     )
+    op.execute("ALTER TABLE public.connect_recipient_accounts NO FORCE ROW LEVEL SECURITY")
     # Backfill and future enrollment are explicitly legacy, never silently embedded.
     op.execute(
         "INSERT INTO connect_access_states(tenant_id,host_org_id,policy) SELECT tenant_id,host_org_id,'express-probe/v1' FROM connect_recipient_accounts"
     )
-    seed_legacy_operations()
+    if op.get_bind().scalar(sa.text("SELECT EXISTS (SELECT FROM public.connect_recipient_accounts)")):
+        seed_legacy_operations()
+    op.execute("ALTER TABLE public.connect_recipient_accounts FORCE ROW LEVEL SECURITY")
     op.execute("""
     CREATE FUNCTION public.connect_access_legacy() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ BEGIN

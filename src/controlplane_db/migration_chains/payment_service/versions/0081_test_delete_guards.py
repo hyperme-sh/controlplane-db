@@ -22,7 +22,6 @@ def upgrade():
     op.execute("""CREATE TABLE public.account_test_delete_guard_originals (
       signature text PRIMARY KEY, definition text NOT NULL);
       ALTER TABLE public.account_test_delete_guard_originals ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE public.account_test_delete_guard_originals FORCE ROW LEVEL SECURITY;
       REVOKE ALL ON public.account_test_delete_guard_originals FROM PUBLIC;
     """)
     connection = op.get_bind()
@@ -73,10 +72,12 @@ def upgrade():
             row["definition"].replace(row["body"], body, 1),
             execution_options={"no_parameters": True},
         )
+    op.execute("ALTER TABLE public.account_test_delete_guard_originals FORCE ROW LEVEL SECURITY")
 
 
 def downgrade():
     op.execute("SELECT public.account_lock_financial_inventory_schema()")
+    op.execute("ALTER TABLE public.account_test_delete_guard_originals NO FORCE ROW LEVEL SECURITY")
     connection = op.get_bind()
     if connection.scalar(sa.text("SELECT public.account_test_data_enabled()")):
         raise RuntimeError(

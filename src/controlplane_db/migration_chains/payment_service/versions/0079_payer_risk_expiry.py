@@ -24,6 +24,7 @@ def upgrade():
     op.create_index('ix_payer_mismatch_accounts_financial_due', 'payer_mismatch_accounts', ['financial_retain_until'])
     # Historical native observations are the only backfill authority. A row with
     # no recorded activity remains unknown; migration time is never its age.
+    op.execute("ALTER TABLE public.payer_mismatch_accounts NO FORCE ROW LEVEL SECURITY")
     op.execute("""UPDATE public.payer_mismatch_accounts SET
       financial_activity_at=greatest(last_mismatch_at,last_checkout_at,day::timestamp AT TIME ZONE 'UTC'),
       financial_retain_until=((greatest(last_mismatch_at,last_checkout_at,day::timestamp AT TIME ZONE 'UTC')
@@ -31,6 +32,7 @@ def upgrade():
       WHERE (last_mismatch_at IS NOT NULL OR last_checkout_at IS NOT NULL)
         AND (last_mismatch_at IS NULL OR isfinite(last_mismatch_at))
         AND (last_checkout_at IS NULL OR isfinite(last_checkout_at)) AND isfinite(day)""")
+    op.execute("ALTER TABLE public.payer_mismatch_accounts FORCE ROW LEVEL SECURITY")
     op.execute("""CREATE TRIGGER account_financial_clock BEFORE INSERT OR UPDATE ON public.payer_mismatch_accounts
       FOR EACH ROW EXECUTE FUNCTION public.payment_financial_clock()""")
     op.execute("""CREATE FUNCTION public.payment_payer_risk_expiry_guard()
