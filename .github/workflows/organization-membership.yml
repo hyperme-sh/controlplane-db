@@ -5,6 +5,7 @@ on:
       - 'src/controlplane_db/models.py'
       - 'src/controlplane_db/migration_chains/platform/versions/0088_org_user_memberships.py'
       - 'qualification/history_tests/test_organization_membership_migration.py'
+      - 'qualification/history_tests/organization_membership_contract.py'
       - 'scripts/infra-fixture/**'
       - '.github/workflows/organization-membership.yml'
   push:
@@ -13,6 +14,7 @@ on:
       - 'src/controlplane_db/models.py'
       - 'src/controlplane_db/migration_chains/platform/versions/0088_org_user_memberships.py'
       - 'qualification/history_tests/test_organization_membership_migration.py'
+      - 'qualification/history_tests/organization_membership_contract.py'
       - 'scripts/infra-fixture/**'
       - '.github/workflows/organization-membership.yml'
 permissions:

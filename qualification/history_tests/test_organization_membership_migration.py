@@ -115,3 +115,20 @@ def test_concurrent_identical_grants_create_one_row(schema):
     with engine.begin() as connection:
         connection.exec_driver_sql(f'SET LOCAL search_path TO "{name}", public')
         assert connection.scalar(text('SELECT count(*) FROM organization_user_memberships')) == 1
+
+
+def test_schema_comparison_removes_only_the_declared_additive_delta(migration_database):
+    from schema_snapshot import schema_snapshot
+    from organization_membership_contract import assert_organization_membership_delta
+    engine = create_engine(migration_database())
+    try:
+        with engine.begin() as connection:
+            connection.exec_driver_sql('CREATE TABLE users (id uuid PRIMARY KEY, tenant_id uuid)')
+            connection.exec_driver_sql('CREATE TABLE organizations (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, UNIQUE(id, tenant_id))')
+            before = schema_snapshot(connection)
+            with Operations.context(MigrationContext.configure(connection)): revision.upgrade()
+            after = schema_snapshot(connection)
+            assert_organization_membership_delta(after)
+            assert after == before
+    finally:
+        engine.dispose()
