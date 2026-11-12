@@ -10,16 +10,25 @@ from runtime_surface import open_surface_files
 files = [str(path) for path in open_surface_files(Path('.').resolve())]
 raise SystemExit(subprocess.call([sys.executable, 'scripts/check_open_boundary.py', 'pyproject.toml', *files]))
 PY
-: "${TEST_DATABASE_URL:?A disposable PostgreSQL server is required}"
+mode="${1:-fixtures}"
+case "$mode" in
+  --contracts) test_dir=tests_contracts ;;
+  fixtures) test_dir=tests; : "${TEST_DATABASE_URL:?A disposable PostgreSQL server is required}" ;;
+  *) echo 'Use --contracts for offline package checks, or no argument for nightly PostgreSQL' >&2; exit 2 ;;
+esac
 uv lock --check
 uv sync --frozen --python 3.13
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-uv run --frozen pytest --junitxml="$scratch/source.xml"
+uv run --frozen pytest "$test_dir" --junitxml="$scratch/source.xml"
 uv run --frozen pytest -q tests_tools
 # Frozen histories are checkout qualification, not installed-package cases.
-uv run --frozen pytest -q qualification/history_tests
-uv run --frozen pytest -q qualification/storage_tests
+if [[ "$mode" == --contracts ]]; then
+  uv run --frozen pytest -q qualification/history_tests/test_owner_startup_ahead.py
+else
+  uv run --frozen pytest -q qualification/history_tests
+  uv run --frozen pytest -q qualification/storage_tests
+fi
 uv build --out-dir "$scratch/dist"
 uv run --frozen python scripts/verify_wheel.py "$scratch/dist"
 uv run --frozen python scripts/export_release_contract.py "$scratch"/dist/*.whl --output "$scratch/contract"
@@ -32,7 +41,7 @@ uv export --frozen --no-emit-project --format requirements-txt --output-file "$s
 uv venv --python 3.13 "$scratch/venv"
 uv pip sync --python "$scratch/venv/bin/python" "$scratch/requirements.txt"
 uv pip install --python "$scratch/venv/bin/python" --constraint "$scratch/requirements.txt" "$scratch"/dist/*.whl
-cp -R tests "$scratch/"
+cp -R "$test_dir" "$scratch/tests"
 (cd "$scratch" && "$scratch/venv/bin/python" -I -m pytest -c /dev/null tests --junitxml="$scratch/wheel.xml")
 # Rebuild from the sdist; a checkout must not supply omitted package files.
 uv run --frozen python - "$scratch" <<'PY'

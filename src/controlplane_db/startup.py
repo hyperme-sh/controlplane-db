@@ -8,6 +8,7 @@ verify.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -115,10 +116,26 @@ def _bootstrap_allowed() -> bool:
     return os.environ.get(_BOOTSTRAP_ENV, '').strip().lower() in {'1', 'true', 'yes'}
 
 
+def _required_tables(root: Path, registry: dict) -> dict[str, list[str]]:
+    """Current startup requirements, separate from historical ownership."""
+    document = json.loads((root / 'startup-tables.json').read_text())
+    required = document.get('chains')
+    if document.get('schema_version') != 1 or not isinstance(required, dict) or set(required) != set(registry['chains']):
+        raise ValueError('Invalid startup table inventory')
+    for chain, tables in required.items():
+        if (not isinstance(tables, list) or not tables
+                or any(not isinstance(t, str) or not re.fullmatch(r'[a-z][a-z0-9_]*', t) for t in tables)
+                or len(tables) != len(set(tables))
+                or not set(tables) <= set(registry['chains'][chain]['tables'])):
+            raise ValueError(f'{chain}: invalid startup table requirements')
+    return required
+
+
 def _owners(database_url: str, root: Path | None = None, *, allow_empty: bool | None = None) -> None:
     if root is None:
         root = migrations._ROOT
     registry = migrations._registry(root)
+    required_tables = _required_tables(root, registry)
     # Build the events source index concurrently before the schema
     # transaction. events_0054 refuses a blocking build on a published log.
     if migrations._prepare_pending_event_source_index(database_url, root):
@@ -155,7 +172,7 @@ def _owners(database_url: str, root: Path | None = None, *, allow_empty: bool | 
                 raise ValueError('partial owner adoption requires review before test reload')
             for chain in migrations._ORDER:
                 _upgrade_owner_chain(
-                    root, chain, connection, versions[chain], registry['chains'][chain]['tables'], tables
+                    root, chain, connection, versions[chain], required_tables[chain], tables
                 )
     finally:
         engine.dispose()

@@ -243,3 +243,45 @@ def test_legacy_mode_still_upgrades_without_skipping(monkeypatch):
 
     assert startup.main() == 0
     assert calls == ['head']
+
+
+_RETIRED_PAYMENT_TABLES = {
+    'onramp_sessions', 'usdc_outbound_transfers', 'usdc_chain_transfers',
+    'usdc_payment_intents', 'usdc_deposit_addresses', 'usdc_ledger_entries',
+    'usdc_ledger_postings',
+}
+
+
+def test_post_retirement_unknown_payment_revision_keeps_booting(monkeypatch):
+    registry = migrations._registry(migrations._ROOT)
+    historical = set(registry['chains']['payment_service']['tables'])
+    assert _RETIRED_PAYMENT_TABLES <= historical
+    required = startup._required_tables(migrations._ROOT, registry)['payment_service']
+    assert set(required) == historical - _RETIRED_PAYMENT_TABLES
+    versions = dict(migrations.chain_heads())
+    versions['payment_service'] = 'payment_service_9999_expand_only'
+    upgraded = _record_upgrades(monkeypatch)
+    _install_database(monkeypatch, versions, tables=set(_owned_tables()) - _RETIRED_PAYMENT_TABLES)
+    startup._owners('postgresql://example')
+    assert 'alembic_version_payment_service' not in upgraded
+    assert len(upgraded) == len(versions) - 1
+
+
+def test_post_retirement_missing_required_payment_table_refuses(monkeypatch):
+    registry = migrations._registry(migrations._ROOT)
+    required = startup._required_tables(migrations._ROOT, registry)['payment_service']
+    versions = dict(migrations.chain_heads())
+    versions['payment_service'] = 'payment_service_9999_expand_only'
+    _record_upgrades(monkeypatch)
+    missing = required[0]
+    _install_database(monkeypatch, versions, tables=set(_owned_tables()) - _RETIRED_PAYMENT_TABLES - {missing})
+    with pytest.raises(ValueError, match=missing):
+        startup._owners('postgresql://example')
+
+
+def test_retired_unversioned_table_still_requires_adoption(monkeypatch):
+    versions = {chain: None for chain in migrations._ORDER}
+    _record_upgrades(monkeypatch)
+    _install_database(monkeypatch, versions, tables=['usdc_ledger_entries'])
+    with pytest.raises(ValueError, match='unversioned existing'):
+        startup._owners('postgresql://example')
