@@ -19,7 +19,18 @@ esac
 uv lock --check
 uv sync --frozen --python 3.13
 scratch=$(mktemp -d)
-trap 'rm -rf "$scratch"' EXIT
+finish_checks() {
+  local status=$?
+  trap - EXIT
+  shopt -s nullglob
+  local reports=("$scratch"/*.xml)
+  if [[ -n "${TEST_EVIDENCE_DIR:-}" && ${#reports[@]} -gt 0 ]]; then
+    mkdir -p "$TEST_EVIDENCE_DIR" && cp "${reports[@]}" "$TEST_EVIDENCE_DIR/" || status=1
+  fi
+  rm -rf "$scratch" || status=1
+  exit "$status"
+}
+trap finish_checks EXIT
 uv run --frozen pytest "$test_dir" --junitxml="$scratch/source.xml"
 uv run --frozen pytest -q tests_tools
 # Frozen histories are checkout qualification, not installed-package cases.
@@ -27,7 +38,7 @@ if [[ "$mode" == --contracts ]]; then
   uv run --frozen pytest -q qualification/history_tests/test_owner_startup_ahead.py
 else
   uv run --frozen pytest -q qualification/history_tests --junitxml="$scratch/history.xml"
-  uv run --frozen pytest -q qualification/storage_tests
+  uv run --frozen pytest -q qualification/storage_tests --junitxml="$scratch/storage.xml"
 fi
 uv build --out-dir "$scratch/dist"
 uv run --frozen python scripts/verify_wheel.py "$scratch/dist"
@@ -65,7 +76,3 @@ if [[ -n "${RELEASE_ARTIFACT_DIR:-}" ]]; then
 fi
 
 python3 scripts/verify-test-results.py "$scratch/source.xml" "$scratch/wheel.xml" "$scratch/sdist.xml"
-if [[ -n "${TEST_EVIDENCE_DIR:-}" ]]; then
-  mkdir -p "$TEST_EVIDENCE_DIR"
-  cp "$scratch"/*.xml "$TEST_EVIDENCE_DIR/"
-fi
