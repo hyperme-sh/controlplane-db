@@ -26,7 +26,7 @@ uv run --frozen pytest -q tests_tools
 if [[ "$mode" == --contracts ]]; then
   uv run --frozen pytest -q qualification/history_tests/test_owner_startup_ahead.py
 else
-  uv run --frozen pytest -q qualification/history_tests
+  uv run --frozen pytest -q qualification/history_tests --junitxml="$scratch/history.xml"
   uv run --frozen pytest -q qualification/storage_tests
 fi
 uv build --out-dir "$scratch/dist"

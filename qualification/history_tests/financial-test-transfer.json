@@ -1,0 +1,17 @@
+{
+  "source_repository": "FyberLabs/panopticon",
+  "source_revision": "2cd00fd9a7ebb950999571a81be7cb0a24d9264e",
+  "files": [
+    {
+      "path": "core/tests/tests/integration/test_financial_inventory.py",
+      "sha256": "03b7eda0f73f260ec9cee78642cb891a5208494f77e73f7f9d0fcdc442238f88",
+      "destination": "qualification/history_tests/test_financial_inventory.py"
+    },
+    {
+      "path": "core/tests/tests/integration/test_payer_risk_expiry.py",
+      "sha256": "42b0c8fcaa8fe6eb6ec3303da3bc5aec5ee4ece652ebbf118cf9e25967639a5f",
+      "destination": "qualification/history_tests/test_payer_risk_expiry.py"
+    }
+  ],
+  "adaptation": "Use the existing isolated_postgres owner harness instead of a separate testcontainers fixture. Preserve native SQL assertions and transaction rollback cases. Add source-free completion cases for native zero proofs, retained bindings, stale epochs and missing acknowledgements."
+}
