@@ -1,0 +1,8 @@
+{
+  "repository": "FyberLabs/infra",
+  "revision": "41bd26250ef2f6f302ad88ba2cb6e4486f6769a7",
+  "files": {
+    "nightly/postgres.py": "23162d9b5daf05c0d91be727f4e60e279c185cc95120ff578b86dcc8a345d752",
+    "ci_resources.py": "b257d41124c31c65588b2e1b10bbf9294c72ecdfba0baead2f2d447f65242af5"
+  }
+}

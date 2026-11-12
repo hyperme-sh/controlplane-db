@@ -60,6 +60,7 @@ class Tenant(Base):
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
+        UniqueConstraint("id", "tenant_id", name="uq_users_id_tenant"),
         Index(
             "uq_users_tenant_keycloak_sub", "tenant_id", "keycloak_sub",
             unique=True,
@@ -208,6 +209,31 @@ class Organization(Base):
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
     legal_name: Mapped[str] = mapped_column(String(512), nullable=False)
+
+
+class OrganizationUserMembership(Base):
+    """Explicit organization roles on an existing tenant user.
+
+    These rows do not confer tenant or platform administration. Each role is
+    separate, so owner/admin reconciliation cannot silently promote a member.
+    """
+
+    __tablename__ = "organization_user_memberships"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "organization_id", "user_id", "role", name="uq_org_user_membership_role"),
+        ForeignKeyConstraint(["organization_id", "tenant_id"], ["organizations.id", "organizations.tenant_id"],
+                             name="fk_org_user_membership_org", ondelete="CASCADE"),
+        ForeignKeyConstraint(["user_id", "tenant_id"], ["users.id", "users.tenant_id"],
+                             name="fk_org_user_membership_user", ondelete="CASCADE"),
+        CheckConstraint("role IN ('member', 'owner', 'admin')", name="ck_org_user_membership_role"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class OrganizationIdpLink(Base):

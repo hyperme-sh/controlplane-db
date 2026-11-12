@@ -1,0 +1,41 @@
+name: Organization membership migration
+on:
+  pull_request:
+    paths:
+      - 'src/controlplane_db/models.py'
+      - 'src/controlplane_db/migration_chains/platform/versions/0088_org_user_memberships.py'
+      - 'qualification/history_tests/test_organization_membership_migration.py'
+      - 'scripts/infra-fixture/**'
+      - '.github/workflows/organization-membership.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/controlplane_db/models.py'
+      - 'src/controlplane_db/migration_chains/platform/versions/0088_org_user_memberships.py'
+      - 'qualification/history_tests/test_organization_membership_migration.py'
+      - 'scripts/infra-fixture/**'
+      - '.github/workflows/organization-membership.yml'
+permissions:
+  contents: read
+jobs:
+  migration:
+    runs-on: [self-hosted, linux, x64, debrunner]
+    timeout-minutes: 10
+    env:
+      INFRA_CI_RUN: db-org-membership-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
+        with:
+          version: '0.11.26'
+          python-version: '3.13'
+      - run: uv sync --frozen
+      - name: Start Infra-owned disposable PostgreSQL
+        run: python3 scripts/infra-fixture/nightly/postgres.py
+      - name: Check this migration only
+        run: uv run --frozen pytest -q qualification/history_tests/test_organization_membership_migration.py
+      - name: Clean this job's Infra fixture
+        if: always()
+        run: python3 scripts/infra-fixture/ci_resources.py --run "$INFRA_CI_RUN"

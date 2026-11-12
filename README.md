@@ -47,3 +47,22 @@ Normal package CI uses `scripts/check-package.sh --contracts` for offline source
 wheel and rebuilt-sdist contracts and mocked startup checks. The central
 `controlplane-db-installed` nightly suite retains the complete PostgreSQL command
 without arguments. No migration is applied as part of this startup-guard fix.
+
+## Explicit organization memberships
+
+`OrganizationUserMembership` adds separate `member`, `owner` and `admin` rows
+for an existing tenant user and organization. Composite foreign keys require
+both references to share the row's tenant. A role has no default; duplicate
+user/organization/role tuples are refused. These records grant no tenant or
+platform administration and do not create or link a person.
+
+The source-only platform revision `platform_0088_org_memberships` installs the
+table with forced tenant row policies and no public grants. Its downgrade locks
+the table and refuses populated data, including data hidden by row policies.
+User Service still needs the authenticated transactional reconciler and owner
+API adoption. Runtime models alone do not install a deployed schema.
+
+The PR checks this migration against minimal parent-table fixtures in the
+existing Infra-owned disposable PostgreSQL, including cross-tenant references,
+row-policy refusal and downgrade preservation. The central scheduled database
+adapter also discovers these cases and retains the full older-schema comparison.
