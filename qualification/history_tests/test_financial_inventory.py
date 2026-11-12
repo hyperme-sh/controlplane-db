@@ -450,6 +450,10 @@ def test_inventory_functions_are_not_public_capabilities(inventory_engine, query
             cx.execute(text(f"DROP ROLE {role}"))
 
 
+SOURCE_FREE_UPDATE = text("""UPDATE account_lifecycles SET state='deleting',
+    profile_deleted_at=transaction_timestamp(), effects=effects || CAST(:effects AS jsonb)
+    WHERE subject=:s""")
+
 FINISH = text('SELECT account_finish_source_free_closure(:s,:at,:epoch)')
 
 
@@ -459,10 +463,10 @@ def source_free_account(inventory_engine):
         transaction = cx.begin()
         try:
             values = closed_scope(cx, str(uuid.uuid4()), None)
-            cx.execute(text("""UPDATE account_lifecycles SET state='deleting',
-                profile_deleted_at=transaction_timestamp(), effects=effects ||
-                '{"personal_owners_erased":true,"identity_erasure":{"complete":true},
-                   "discarded_progress":{"source":"private"}}'::jsonb WHERE subject=:s"""), values)
+            cx.execute(SOURCE_FREE_UPDATE, {**values, 'effects': json.dumps({
+                'personal_owners_erased': True, 'identity_erasure': {'complete': True},
+                'discarded_progress': {'source': 'private'},
+            })})
             for function in ('account_prime_billing_financial_sources',
                              'payment_prime_financial_sources', 'hypermesh_prime_financial_sources'):
                 assert cx.scalar(text(f'SELECT {function}(:s,:at,NULL,1000)'), values)['complete']
