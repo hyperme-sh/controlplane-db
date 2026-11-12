@@ -132,3 +132,30 @@ def test_schema_comparison_removes_only_the_declared_additive_delta(migration_da
             assert after == before
     finally:
         engine.dispose()
+
+
+def test_restricted_owner_refuses_populated_downgrade_then_removes_empty_table(schema):
+    engine, name, ids = schema
+    role = 'org_owner_' + uuid4().hex
+    with engine.begin() as connection:
+        connection.exec_driver_sql(f'SET LOCAL search_path TO "{name}", public')
+        add(connection, ids, 'owner')
+        connection.exec_driver_sql(f'CREATE ROLE "{role}" NOLOGIN NOSUPERUSER NOBYPASSRLS')
+        connection.exec_driver_sql(f'GRANT USAGE, CREATE ON SCHEMA "{name}" TO "{role}"')
+        for table in ('users', 'organizations', 'organization_user_memberships'):
+            connection.exec_driver_sql(f'ALTER TABLE {table} OWNER TO "{role}"')
+        connection.exec_driver_sql(f'SET LOCAL ROLE "{role}"')
+        connection.execute(text("SELECT set_config('app.current_tenant_id', :tenant, true)"), {'tenant':str(ids['other'])})
+        assert connection.scalar(text('SELECT count(*) FROM organization_user_memberships')) == 0
+        with pytest.raises(DBAPIError, match='requires an empty table'), connection.begin_nested():
+            with Operations.context(MigrationContext.configure(connection)): revision.downgrade()
+        assert connection.scalar(text("SELECT relforcerowsecurity FROM pg_class WHERE oid='organization_user_memberships'::regclass")) is True
+        connection.exec_driver_sql('RESET ROLE')
+        assert connection.scalar(text('SELECT count(*) FROM organization_user_memberships')) == 1
+        connection.exec_driver_sql('DELETE FROM organization_user_memberships')
+        connection.exec_driver_sql(f'SET LOCAL ROLE "{role}"')
+        with Operations.context(MigrationContext.configure(connection)): revision.downgrade()
+        assert connection.scalar(text('SELECT count(*) FROM users')) == 2
+        connection.exec_driver_sql('RESET ROLE')
+        connection.exec_driver_sql(f'DROP OWNED BY "{role}"')
+        connection.exec_driver_sql(f'DROP ROLE "{role}"')

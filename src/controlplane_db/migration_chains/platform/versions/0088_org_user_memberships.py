@@ -37,7 +37,9 @@ def upgrade():
 def downgrade():
     # Preserve real grants: populated tables need an explicit migration plan.
     op.execute('LOCK TABLE organization_user_memberships IN ACCESS EXCLUSIVE MODE')
-    op.execute('SET LOCAL row_security = off')
+    # A restricted table owner must inspect all rows, including hidden tenants.
+    # Failure rolls this change back with the migration transaction.
+    op.execute('ALTER TABLE organization_user_memberships NO FORCE ROW LEVEL SECURITY')
     op.execute('''DO $$ BEGIN
         IF EXISTS (SELECT 1 FROM organization_user_memberships) THEN
             RAISE EXCEPTION 'Organization membership downgrade requires an empty table';
