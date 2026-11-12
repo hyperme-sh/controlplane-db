@@ -16,6 +16,7 @@ from controlplane_db import migrations
 from migration_test_support import isolated_postgres, normalize_sync_sqlalchemy_url, run_alembic_upgrade, alembic_ini_path
 from schema_snapshot import schema_snapshot
 from contact_lane_contract import assert_contact_lane_delta, assert_same_schema
+from first_contact_contract import assert_first_contact_delta
 
 pytestmark = pytest.mark.integration
 CHAINS = migrations._ROOT
@@ -1015,6 +1016,7 @@ def assert_cache_migration_delta(before, after):
     assert lookup['grants'] == grants
     expected['functions'][signature] = {'definition': lookup['definition'], 'grants': grants}
     assert_contact_lane_delta(after)
+    assert_first_contact_delta(after)
     assert_same_schema(after, expected)
 
 
