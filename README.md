@@ -34,3 +34,16 @@ The platform and payment upgrade tests exercise a table-owning migrator without
 CREATEROLE, superuser or BYPASSRLS. Historical backfills run under transactional
 table locks and restore forced RLS before commit. Retiring the old custody
 schema still requires every custody table to be empty.
+
+## Startup table requirements and CI
+
+`migration_chains/startup-tables.json` records the tables required by the
+checkout startup runner. The historical ownership and baseline inventories are
+unchanged. A newer unknown payment revision can omit the seven custody tables
+retired by 0064, but must retain every current requirement. Malformed and
+cross-owner revisions and unversioned tables still refuse startup.
+
+Normal package CI uses `scripts/check-package.sh --contracts` for offline source,
+wheel and rebuilt-sdist contracts and mocked startup checks. The central
+`controlplane-db-installed` nightly suite retains the complete PostgreSQL command
+without arguments. No migration is applied as part of this startup-guard fix.

@@ -10,18 +10,6 @@ jobs:
   package:
     runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "linux", "x64", "debrunner"]') || 'ubuntu-24.04' }}
     timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:17@sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1
-        env:
-          POSTGRES_PASSWORD: package-test-only
-        ports:
-          - 5432/tcp
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     steps:
       - name: Prepare release output
         run: echo "RELEASE_ARTIFACT_DIR=$(mktemp -d "$RUNNER_TEMP/release-dist.XXXXXX")" >> "$GITHUB_ENV"
@@ -32,10 +20,9 @@ jobs:
         with:
           version: '0.11.26'
           python-version: '3.13'
-      - run: bash scripts/check-package.sh
+      - run: bash scripts/check-package.sh --contracts
         env:
           TEST_EVIDENCE_DIR: ${{ runner.temp }}/database-test-results
-          TEST_DATABASE_URL: postgresql+psycopg://postgres:package-test-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/postgres
       # Retain PR evidence without publishing a tag or release.
       - name: Retain validated package bytes
         if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
