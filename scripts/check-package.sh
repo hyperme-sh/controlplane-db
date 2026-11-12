@@ -19,6 +19,7 @@ uv run --frozen pytest --junitxml="$scratch/source.xml"
 uv run --frozen pytest -q tests_tools
 # Frozen histories are checkout qualification, not installed-package cases.
 uv run --frozen pytest -q qualification/history_tests
+uv run --frozen pytest -q qualification/storage_tests
 uv build --out-dir "$scratch/dist"
 uv run --frozen python scripts/verify_wheel.py "$scratch/dist"
 uv run --frozen python scripts/export_release_contract.py "$scratch"/dist/*.whl --output "$scratch/contract"

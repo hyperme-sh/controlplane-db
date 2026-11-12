@@ -31,7 +31,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["LICENSE", "src", "tests", "scripts", "README.md", "AGENTS.md", "pyproject.toml", "uv.lock"]
+include = ["LICENSE", "storage-schema", "src", "tests", "scripts", "README.md", "AGENTS.md", "pyproject.toml", "uv.lock"]
 exclude = [
     "src/controlplane_db/alembic/**",
     "src/controlplane_db/alembic.ini",
