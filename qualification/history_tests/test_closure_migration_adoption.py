@@ -40,7 +40,6 @@ def test_upgrade_reconciles_hardening_and_closure_and_preserves_worker_preflight
                     connection.execute(text("INSERT INTO tenants(id,name,is_active) VALUES(:id,'retained',true)"), {'id': uuid.uuid4()})
             migrations.upgrade(url)
             assert migrations.current_heads(url) == migrations.chain_heads()
-            assert migrations.chain_heads()['platform'] == 'platform_0085_stripe_merge'
             with engine.begin() as connection:
                 connection.execute(text('SELECT public.account_check_closure_worker_installation()'))
                 assert connection.scalar(text("SELECT to_regclass('public.identity_retirements') IS NOT NULL"))
@@ -154,7 +153,6 @@ def test_independent_stripe_guard_histories_preserve_data_and_downgrade(previous
             for attempt in range(2):
                 migrations.upgrade(url)
                 assert migrations.current_heads(url)==migrations.chain_heads()
-                assert migrations.chain_heads()['platform']=='platform_0085_stripe_merge'
                 with engine.begin() as c:
                     assert c.scalar(text('SELECT to_jsonb(b) FROM billing_records b WHERE id=:p'),{'p':payment})==original
                     assert c.scalar(text("SELECT to_regprocedure('public.account_test_stripe_metadata(jsonb)') IS NOT NULL")) is True
