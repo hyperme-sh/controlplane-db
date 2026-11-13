@@ -206,6 +206,7 @@ def test_reload_adopts_existing_database_and_is_repeatable(databases, tmp_path):
     assert after['tables'].pop('host_payout_addresses')['rls'] == [True, True]
     assert_journal_schema_delta(after)
     assert_hypermesh_empty_scope_delta(before, after)
+    assert_organization_membership_delta(after)
     assert_subject_scope_delta(before, after)
     assert_cache_migration_delta(before, after)
     root = tmp_path / 'chains'
@@ -256,6 +257,7 @@ def test_reload_fresh_database_uses_owner_schema(databases):
     assert_journal_schema_delta(after)
     before = snapshot(databases['source'])
     assert_hypermesh_empty_scope_delta(before, after)
+    assert_organization_membership_delta(after)
     assert_subject_scope_delta(before, after)
     assert_cache_migration_delta(before, after)
     assert migrations.current_heads(databases['reload_fresh']) == migrations.chain_heads()
@@ -1018,7 +1020,6 @@ def assert_cache_migration_delta(before, after):
     expected['functions'][signature] = {'definition': lookup['definition'], 'grants': grants}
     assert_contact_lane_delta(after)
     assert_first_contact_delta(after)
-    assert_organization_membership_delta(after)
     assert_same_schema(after, expected)
 
 
