@@ -145,6 +145,7 @@ def test_host_binding_migration_on_existing_schema(migrated_postgres: str) -> No
                 with Operations.context(MigrationContext.configure(cx)):
                     # This historical migration owns the org uniqueness constraint;
                     # remove newer dependent tables within this rolled-back test.
+                    cx.execute(text("DROP TABLE organization_user_memberships"))
                     cx.execute(text("DROP TABLE hypermesh_self_use_members"))
                     cx.execute(text("DROP TABLE hypermesh_onboarding_runs"))
                     cx.execute(text("DROP TABLE hypermesh_host_registrations"))
