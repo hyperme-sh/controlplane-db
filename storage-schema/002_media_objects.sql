@@ -16,7 +16,7 @@ CREATE TABLE storage_media_objects (
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK (expires_at>issued_at AND expires_at-issued_at<=300),
     PRIMARY KEY (tenant_id,object_id),
-    UNIQUE (tenant_id,source_id,allocation_id),
+    UNIQUE (tenant_id,allocation_id),
     UNIQUE (tenant_id,deletion_command),
     CHECK ((phase=0 AND deletion_command IS NULL) OR (phase IN (1,2) AND deletion_command IS NOT NULL))
 );
