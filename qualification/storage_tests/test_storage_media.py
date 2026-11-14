@@ -95,3 +95,19 @@ def test_changed_bundle_refuses_without_rewriting_metadata(database,tmp_path,mon
     changed=tmp_path/'changed.sql';changed.write_bytes(media.DDL.read_bytes()+b'\n-- changed\n')
     monkeypatch.setattr(media,'DDL',changed)
     with pytest.raises(ValueError,match='version differs'):media.apply(owner,schema,runtime)
+
+
+def test_temporary_relations_cannot_shadow_transition_guards(database):
+    _,app,schema,_=database;tenant,_=initialize(database)
+    insert(app,tenant);ref(app,tenant)
+    objects=sql.Identifier(schema,'storage_media_objects')
+    refs=sql.Identifier(schema,'storage_media_refs')
+    app.execute('CREATE TEMP TABLE storage_media_refs (tenant_id uuid, object_id text)')
+    app.execute(sql.SQL('UPDATE {} SET phase=1,deletion_command=%s WHERE object_id=%s').format(objects),('e'*64,OBJECT))
+    with pytest.raises(psycopg.errors.RaiseException):
+        app.execute(sql.SQL('UPDATE {} SET phase=2 WHERE object_id=%s').format(objects),(OBJECT,))
+    app.execute('CREATE TEMP TABLE storage_media_objects (tenant_id uuid,object_id text,phase smallint)')
+    app.execute('INSERT INTO pg_temp.storage_media_objects VALUES (%s,%s,0)',(tenant,OBJECT))
+    with pytest.raises(psycopg.errors.RaiseException):
+        app.execute(sql.SQL("INSERT INTO {} VALUES (%s,%s,'wrap',%s,33)").format(refs),(tenant,OBJECT,'f'*64))
+    assert app.execute(sql.SQL('SELECT count(*) FROM {}').format(refs)).fetchone()==(1,)
