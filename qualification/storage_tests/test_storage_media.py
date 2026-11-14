@@ -34,7 +34,7 @@ def initialize(database):
 
 
 def insert(app,tenant,object=OBJECT):
-    app.execute('INSERT INTO storage_media_objects(tenant_id,object_id,owner_principal,source_id,allocation_id) VALUES (%s,%s,%s,%s,%s)',(tenant,object,OWNER,uuid.uuid4(),uuid.uuid4()))
+    app.execute('INSERT INTO storage_media_objects(tenant_id,object_id,owner_principal,source_id,allocation_id,issuer_id,policy_digest,ownership_digest,issued_at,expires_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,1000,1300)',(tenant,object,OWNER,uuid.uuid4(),uuid.uuid4(),uuid.uuid4(),'a'*64,'b'*64))
 
 
 def ref(app,tenant,object=OBJECT):
