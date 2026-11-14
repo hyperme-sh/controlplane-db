@@ -20,7 +20,7 @@ def apply(connection,schema,runtime_role):
         # its transaction advisory lock remains held until this outer commit.
         base.apply(connection,schema,runtime_role)
         with connection.cursor() as cursor:
-            cursor.execute(sql.SQL('SET LOCAL search_path TO {},pg_catalog').format(sql.Identifier(schema)))
+            cursor.execute(sql.SQL('SET LOCAL search_path TO {},pg_catalog,pg_temp').format(sql.Identifier(schema)))
             cursor.execute('SELECT to_regclass(%s)',(schema+'.storage_media_schema_version',))
             if cursor.fetchone()[0] is not None:
                 cursor.execute('SELECT version,sha256,runtime_role FROM storage_media_schema_version')
