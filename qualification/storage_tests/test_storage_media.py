@@ -114,3 +114,11 @@ def test_temporary_relations_cannot_shadow_transition_guards(database):
     with pytest.raises(psycopg.errors.RaiseException):
         app.execute(sql.SQL("INSERT INTO {} VALUES (%s,%s,'wrap',%s,33)").format(refs),(tenant,OBJECT,'f'*64))
     assert app.execute(sql.SQL('SELECT count(*) FROM {}').format(refs)).fetchone()==(1,)
+
+
+def test_allocation_identifier_cannot_move_to_another_source(database):
+    _,app,_,_=database;tenant,_=initialize(database)
+    insert(app,tenant)
+    allocation=app.execute('SELECT allocation_id FROM storage_media_objects').fetchone()[0]
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        app.execute('INSERT INTO storage_media_objects(tenant_id,object_id,owner_principal,source_id,allocation_id,issuer_id,policy_digest,ownership_digest,issued_at,expires_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,1000,1300)',(tenant,SECOND,OWNER,uuid.uuid4(),allocation,uuid.uuid4(),'a'*64,'b'*64))
