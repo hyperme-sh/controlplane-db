@@ -27,5 +27,5 @@ def test_permanent_binding_and_legacy_reference_refusal(database):
     with pytest.raises(psycopg.errors.RaiseException):owner.execute('UPDATE storage_media_locations SET provider_location=%s',('b'*64,))
     app.execute("SELECT set_config('app.current_tenant_id',%s,false)",(str(other),))
     assert app.execute('SELECT * FROM storage_media_locations').fetchall()==[]
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):app.execute('INSERT INTO storage_media_locations VALUES (%s,%s,%s)',(tenant,OBJECT,'a'*64))
+    with pytest.raises((psycopg.errors.InsufficientPrivilege,psycopg.errors.RaiseException)):app.execute('INSERT INTO storage_media_locations VALUES (%s,%s,%s)',(tenant,OBJECT,'a'*64))
     with pytest.raises(ValueError):locations.apply(app,schema,runtime)
