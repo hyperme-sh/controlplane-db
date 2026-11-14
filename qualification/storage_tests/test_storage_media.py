@@ -1,5 +1,7 @@
 """CI-only storage retirement schema, tenant scope and serialization contracts."""
 import importlib.util
+import os
+from sqlalchemy.engine import make_url
 from pathlib import Path
 import uuid
 import psycopg
@@ -77,7 +79,8 @@ def test_tenant_scope_and_runtime_ddl_refusal(database):
 def test_pending_reference_transaction_serializes_retirement(database):
     _,app,schema,runtime=database;tenant,_=initialize(database)
     insert(app,tenant)
-    with psycopg.connect(app.info.dsn,autocommit=True) as other:
+    url=make_url(os.environ['TEST_DATABASE_URL']).set(drivername='postgresql').render_as_string(hide_password=False)
+    with psycopg.connect(url,autocommit=True) as other:
         other.execute(sql.SQL('SET ROLE {}').format(sql.Identifier(runtime)))
         other.execute(sql.SQL('SET search_path TO {},pg_catalog').format(sql.Identifier(schema)))
         other.execute("SELECT set_config('app.current_tenant_id',%s,false)",(str(tenant),))
