@@ -3,12 +3,18 @@ CREATE TABLE storage_media_objects (
     tenant_id uuid NOT NULL REFERENCES tenants(id),
     object_id text NOT NULL CHECK (object_id ~ '^media_p_[a-f0-9]{128}_[a-f0-9]{32}$'),
     owner_principal text NOT NULL CHECK (owner_principal ~ '^[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$'),
+    issuer_id uuid NOT NULL CHECK (issuer_id <> '00000000-0000-0000-0000-000000000000'),
+    policy_digest text NOT NULL CHECK (policy_digest ~ '^[a-f0-9]{64}$'),
+    ownership_digest text NOT NULL CHECK (ownership_digest ~ '^[a-f0-9]{64}$'),
+    issued_at bigint NOT NULL CHECK (issued_at BETWEEN 0 AND 9007199254740991),
+    expires_at bigint NOT NULL CHECK (expires_at BETWEEN 0 AND 9007199254740991),
     source_id uuid NOT NULL CHECK (source_id <> '00000000-0000-0000-0000-000000000000'),
     allocation_id uuid NOT NULL CHECK (allocation_id <> '00000000-0000-0000-0000-000000000000'),
     phase smallint NOT NULL DEFAULT 0 CHECK (phase IN (0,1,2)),
     deletion_command text CHECK (deletion_command ~ '^[a-f0-9]{64}$'),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
+    CHECK (expires_at>issued_at AND expires_at-issued_at<=300),
     PRIMARY KEY (tenant_id,object_id),
     UNIQUE (tenant_id,source_id,allocation_id),
     UNIQUE (tenant_id,deletion_command),
@@ -36,8 +42,8 @@ BEGIN
         RETURN NEW;
     END IF;
     IF TG_OP='DELETE' THEN RAISE EXCEPTION 'Media retirement markers are permanent'; END IF;
-    IF ROW(NEW.tenant_id,NEW.object_id,NEW.owner_principal,NEW.source_id,NEW.allocation_id,NEW.created_at)
-        IS DISTINCT FROM ROW(OLD.tenant_id,OLD.object_id,OLD.owner_principal,OLD.source_id,OLD.allocation_id,OLD.created_at)
+    IF ROW(NEW.tenant_id,NEW.object_id,NEW.owner_principal,NEW.source_id,NEW.allocation_id,NEW.issuer_id,NEW.policy_digest,NEW.ownership_digest,NEW.issued_at,NEW.expires_at,NEW.created_at)
+        IS DISTINCT FROM ROW(OLD.tenant_id,OLD.object_id,OLD.owner_principal,OLD.source_id,OLD.allocation_id,OLD.issuer_id,OLD.policy_digest,OLD.ownership_digest,OLD.issued_at,OLD.expires_at,OLD.created_at)
         OR NOT (NEW.phase=OLD.phase OR NEW.phase=OLD.phase+1)
         OR (OLD.deletion_command IS NOT NULL AND NEW.deletion_command IS DISTINCT FROM OLD.deletion_command)
     THEN RAISE EXCEPTION 'Invalid media object transition'; END IF;
