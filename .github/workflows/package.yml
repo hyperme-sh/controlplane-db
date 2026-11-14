@@ -47,3 +47,10 @@ jobs:
           path: ${{ runner.temp }}/database-test-results/*.xml
           if-no-files-found: error
           retention-days: 90
+      - name: Retain checked development packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qualified-development-packages
+          path: ${{ env.RELEASE_ARTIFACT_DIR }}/*
+          if-no-files-found: error
+          retention-days: 30
