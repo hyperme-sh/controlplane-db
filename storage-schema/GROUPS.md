@@ -21,3 +21,11 @@ The CI storage contracts cover tenant isolation, scope immutability, quota,
 retirement ordering, concurrent transaction locks and temporary-table shadowing.
 This bundle alone does not configure a provider, install deployed schema, issue
 credentials or activate group key delivery.
+
+
+`group_location_migrate.py` adds version-5 provider bindings. Each group binds an
+opaque provider-location digest before its first wrap reference. Bindings cannot
+be changed or deleted, even after retirement. Groups already holding references
+without a binding require explicit reconciliation; the runtime must not guess a
+location from current configuration. Provider binding mutations also require
+READ COMMITTED. No connection strings or credentials are stored in these rows.
