@@ -35,9 +35,12 @@ CREATE INDEX storage_group_owner_objects ON storage_group_objects(tenant_id,owne
 CREATE FUNCTION storage_group_object_transition() RETURNS trigger
 LANGUAGE plpgsql SET search_path FROM CURRENT AS $$
 BEGIN
+    IF current_setting('transaction_isolation') <> 'read committed' THEN
+        RAISE EXCEPTION 'Group storage requires read committed isolation';
+    END IF;
     IF TG_OP='INSERT' THEN
         PERFORM id FROM tenants WHERE id=NEW.tenant_id FOR UPDATE;
-        IF NOT FOUND THEN RAISE EXCEPTION 'Group tenant unavailable'; END IF;
+        IF NOT FOUND THEN RAISE EXCEPTION 'Group tenant unavailable' USING ERRCODE='42501'; END IF;
         IF (SELECT count(*) FROM storage_group_objects WHERE tenant_id=NEW.tenant_id AND phase<>2)>=64
         THEN RAISE EXCEPTION 'Group allocation capacity'; END IF;
         IF NEW.phase<>0 OR NEW.deletion_command IS NOT NULL THEN RAISE EXCEPTION 'Group objects start active'; END IF;
@@ -59,6 +62,9 @@ CREATE FUNCTION storage_group_ref_transition() RETURNS trigger
 LANGUAGE plpgsql SET search_path FROM CURRENT AS $$
 DECLARE target record; held_phase smallint;
 BEGIN
+    IF current_setting('transaction_isolation') <> 'read committed' THEN
+        RAISE EXCEPTION 'Group storage requires read committed isolation';
+    END IF;
     IF TG_OP='UPDATE' THEN RAISE EXCEPTION 'Group references are immutable'; END IF;
     IF TG_OP='DELETE' THEN target:=OLD; ELSE target:=NEW; END IF;
     SELECT phase INTO held_phase FROM storage_group_objects

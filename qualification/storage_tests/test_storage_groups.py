@@ -144,3 +144,21 @@ def test_group_shape_and_immutable_predicate_refuse_media_reuse(database):
     for size in (0,65537):
         with pytest.raises(psycopg.errors.CheckViolation):
             app.execute('INSERT INTO storage_group_refs VALUES (%s,%s,%s,%s)',(tenant,OBJECT,DIGEST,size))
+
+
+@pytest.mark.parametrize('isolation', ['REPEATABLE READ', 'SERIALIZABLE'])
+def test_snapshot_isolation_cannot_bypass_group_quotas(database, isolation):
+    _,app,_,_=database;tenant,_=initialize(database)
+    insert(app,tenant)
+    with pytest.raises(psycopg.errors.RaiseException, match='read committed'):
+        with app.transaction():
+            app.execute('SET TRANSACTION ISOLATION LEVEL '+isolation)
+            app.execute('SELECT count(*) FROM storage_group_objects')
+            insert(app,tenant,SECOND)
+    with pytest.raises(psycopg.errors.RaiseException, match='read committed'):
+        with app.transaction():
+            app.execute('SET TRANSACTION ISOLATION LEVEL '+isolation)
+            app.execute('SELECT count(*) FROM storage_group_refs')
+            ref(app,tenant)
+    assert app.execute('SELECT count(*) FROM storage_group_objects').fetchone()==(1,)
+    assert app.execute('SELECT count(*) FROM storage_group_refs').fetchone()==(0,)

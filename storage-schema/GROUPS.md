@@ -12,7 +12,8 @@ marker cannot be reused or moved to another scope. No implicit membership exists
 A group has at most 4096 immutable encrypted wrap references, each at most 64 KiB:
 64 native epochs times at most 64 recipients. References are reserved before
 provider writes; uncertain writes retain their reservation. Tenant and group
-row locks serialize quota changes. Retirement must remove provider bytes and
+row locks serialize quota changes under READ COMMITTED. All group mutations
+reject other transaction isolation levels so stale snapshots cannot bypass quotas. Retirement must remove provider bytes and
 references before the permanent marker can become retired. Runtime deletion of
 allocation markers is forbidden. Forced RLS applies to both tables.
 
