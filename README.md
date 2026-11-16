@@ -79,3 +79,7 @@ TEST channels. This database library does not define a standalone service
 entrypoint. Its consumer-image preparation, owner and third-party notices,
 history review and older-image review remain separate follow-ups. No package
 release or registry visibility change is made by the anonymous build checks.
+
+The [publication preparation record](docs/publication/README.md) describes the
+owner/dependency notices, prepared GHCR consumer image and reachable-history
+review. These checks do not change visibility or publish a release.

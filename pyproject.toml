@@ -7,7 +7,7 @@ name = "controlplane-db"
 version = "0.1.0"
 requires-python = ">=3.13"
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 dependencies = [
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30.0",
@@ -31,7 +31,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["LICENSE", "storage-schema", "src", "tests", "tests_contracts", "scripts", "README.md", "AGENTS.md", "pyproject.toml", "uv.lock"]
+include = ["LICENSE", "NOTICE", "storage-schema", "src", "tests", "tests_contracts", "scripts", "README.md", "AGENTS.md", "pyproject.toml", "uv.lock"]
 exclude = [
     "src/controlplane_db/alembic/**",
     "src/controlplane_db/alembic.ini",

@@ -9,7 +9,7 @@ permissions:
 jobs:
   package:
     runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "linux", "x64", "debrunner"]') || 'ubuntu-24.04' }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17@sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1
@@ -23,6 +23,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
+      - name: Prepare build-local package output
+        run: echo "RELEASE_ARTIFACT_DIR=$(mktemp -d "$RUNNER_TEMP/db-dist.XXXXXX")" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
@@ -37,6 +39,7 @@ jobs:
         run: >-
           bash scripts/anonymous-command.sh env
           TEST_EVIDENCE_DIR="$TEST_EVIDENCE_DIR"
+          RELEASE_ARTIFACT_DIR="$RELEASE_ARTIFACT_DIR"
           bash scripts/check-package.sh --contracts
       - name: Qualify storage schema with restricted PostgreSQL roles
         env:
@@ -46,3 +49,15 @@ jobs:
           TEST_DATABASE_URL="$TEST_DATABASE_URL"
           uv run --frozen --python 3.13 pytest -v qualification/storage_tests
           --junitxml="$RUNNER_TEMP/database-test-results/storage.xml"
+      - name: Prepare and inspect GHCR consumer image
+        env:
+          QUALIFIED_DIST_DIR: ${{ env.RELEASE_ARTIFACT_DIR }}
+        run: >-
+          bash scripts/anonymous-command.sh env
+          QUALIFIED_DIST_DIR="$QUALIFIED_DIST_DIR"
+          GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID"
+          GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT"
+          bash scripts/check-container.sh
+      - name: Remove build-local package output
+        if: always()
+        run: rm -rf -- "$RELEASE_ARTIFACT_DIR"
