@@ -83,3 +83,9 @@ release or registry visibility change is made by the anonymous build checks.
 The [publication preparation record](docs/publication/README.md) describes the
 owner/dependency notices, prepared GHCR consumer image and reachable-history
 review. These checks do not change visibility or publish a release.
+
+## Runtime distribution
+
+Runtime builds do not download or bundle third-party source archives. Owner
+LICENSE/NOTICE and dependency legal texts remain in the image. Source-bundle
+records describe earlier builds only; no separate source container is introduced.

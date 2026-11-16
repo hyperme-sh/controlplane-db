@@ -26,11 +26,6 @@ def prepare(distribution, output):
         shutil.copyfile(ROOT / name, output / name)
     shutil.copytree(ROOT / '.github/workflows/third-party-notices', output / 'licenses')
     shutil.copyfile(ROOT / 'scripts/prepare_notices.py', output / 'prepare_notices.py')
-    subprocess.run([sys.executable, str(ROOT / 'scripts/prepare_sources.py'), 'fetch',
-                    str(ROOT / 'licenses/sources.json'), '--output', str(output / 'sources')], check=True)
-    shutil.copytree(ROOT / '.github/workflows/source-provenance', output / 'sources/provenance')
-    shutil.copyfile(ROOT / 'scripts/prepare_sources.py', output / 'prepare_sources.py')
-    shutil.copyfile(ROOT / 'licenses/base-image.json', output / 'sources/base-image.json')
     inventory = {p.relative_to(output).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in sorted(output.rglob('*')) if p.is_file()}
     (output / 'inventory.json').write_text(json.dumps(inventory, sort_keys=True, indent=2) + '\n')

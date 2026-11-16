@@ -1,3 +1,7 @@
+> Superseded: runtime images no longer download or include source archives.
+> LICENSE/NOTICE and dependency legal texts remain. The records below describe
+> prior builds and are retained for historical review, not current build steps.
+
 # DB Python base source/legal review
 
 DB already builds both stages from the exact Python 3.13 slim Bookworm image
