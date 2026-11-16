@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 from pathlib import Path
 import threading
+import os
+from sqlalchemy.engine import make_url
 import uuid
 import psycopg
 from psycopg import sql
@@ -68,7 +70,7 @@ def test_concurrent_consumers_share_one_pool(database):
     owner,app,schema,runtime=database;tenant,generation=setup(database)
     barrier=threading.Barrier(2)
     def contender(purpose):
-        with psycopg.connect(app.info.dsn,autocommit=True) as db:
+        with psycopg.connect(make_url(os.environ["TEST_DATABASE_URL"]).set(drivername="postgresql").render_as_string(hide_password=False),autocommit=True) as db:
             db.execute(sql.SQL('SET ROLE {}').format(sql.Identifier(runtime)))
             db.execute(sql.SQL('SET search_path TO {},pg_catalog').format(sql.Identifier(schema)))
             db.execute("SELECT set_config('app.current_tenant_id',%s,false)",(str(tenant),))
@@ -78,3 +80,13 @@ def test_concurrent_consumers_share_one_pool(database):
     with ThreadPoolExecutor(max_workers=2) as pool:
         assert sorted(pool.map(contender,['turn','mediamtx']))==[False,True]
     assert app.execute('SELECT sum(reserved_bytes) FROM wire_reservations').fetchone()==(750,)
+
+
+def test_future_allowance_cannot_become_usable_early(database):
+    owner,app,_,_=database;tenant,generation=setup(database)
+    # A future issuance within the old two-second tolerance must be refused,
+    # including the upcoming UTC day. No wall-clock midnight wait is needed.
+    now=int(app.execute('SELECT floor(extract(epoch FROM clock_timestamp()))').fetchone()[0])+2
+    with pytest.raises(psycopg.errors.RaiseException,match='policy unavailable'):
+        reserve(app,tenant,generation,now=now)
+    assert app.execute('SELECT count(*) FROM wire_reservations').fetchone()==(0,)

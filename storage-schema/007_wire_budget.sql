@@ -31,6 +31,7 @@ BEGIN
     SELECT * INTO policy FROM wire_policies WHERE tenant_id=NEW.tenant_id;
     IF NOT FOUND OR NOT policy.enabled OR NEW.generation<>policy.generation
         OR NEW.expires_at<=extract(epoch FROM clock_timestamp())
+        OR NEW.issued_at>extract(epoch FROM clock_timestamp())
     THEN RAISE EXCEPTION 'Wire policy unavailable'; END IF;
     IF TG_OP='UPDATE' THEN
         IF ROW(NEW.tenant_id,NEW.reservation_id,NEW.generation,NEW.consumer,NEW.purpose,NEW.issued_at,NEW.expires_at,NEW.reserved_bytes)
