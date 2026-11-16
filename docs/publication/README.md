@@ -14,9 +14,10 @@ unsafe layer paths and unexpected secret matches. Offline installed-file checks
 compare the shipped runtime to its declared source surface and verify notice
 hashes. This is a consumer library image, not a standalone database server.
 
-The image is prepared and inspected in CI but not published by this change.
-Eventual TEST publication uses a moving channel; exact hashes record which bytes
-were checked. No Actions package or report uploads are used.
+Successful main CI publishes the qualified image to `runtime:test`, pulls it back
+and verifies its identity. Publication is serialized and skips stale main builds.
+Exact hashes record checked bytes; consumers use the moving channel.
+No Actions package or report uploads are used.
 
 The initial history inventory covers 1,064 commit/tag/blob objects reachable from
 HEAD and fetched origin branches/tags, with 231 content matches. Checkout-only
@@ -27,10 +28,13 @@ and scans exported bytes and bounded wheel/ZIP members without running old code.
 It does not cover deleted/unreachable or hidden refs, remote LFS bytes or external
 archives. No history is rewritten or cleared for redistribution.
 
-Remaining work includes content classification, older-image inventory/review,
-Debian source archive bundling and GHCR
-publication activation. Notices and passing scanners alone do not establish
-redistribution clearance. Access, Portal and Infra #946 remain separate work.
+The retained-content ledger is in `docs/historical-distributions`. The older-image
+workflow inventories tagged and untagged retained GHCR versions and scans every
+Linux amd64 layer without executing old code. Missing access is reported as
+unavailable, never proof of an empty registry. After publication, inventory and
+layer review must succeed. Other registries, deleted versions and omitted
+platforms are outside this review. Scans do not grant publication clearance.
+Access, Portal and Infra #946 remain separate work.
 
 The 236 initial secret-scanner matches are SHA-256 entries in retained migration
 inventories, each verified against reachable source bytes. Exceptions bind the
@@ -44,4 +48,5 @@ The [source and replacement record](../../licenses/SOURCES.md) covers the locked
 psycopg runtime and its native dependencies. It does not grant publication clearance.
 
 [Base-image review](../../licenses/BASE.md) records the installed Debian/legal
-inventory and matching CPython source.
+inventory. Historical source records are superseded: no source bundles are
+downloaded or included in runtime images.
