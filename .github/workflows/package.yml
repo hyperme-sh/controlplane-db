@@ -44,5 +44,5 @@ jobs:
         run: >-
           bash scripts/anonymous-command.sh env
           TEST_DATABASE_URL="$TEST_DATABASE_URL"
-          uv run --frozen pytest -v qualification/storage_tests
+          uv run --frozen --python 3.13 pytest -v qualification/storage_tests
           --junitxml="$RUNNER_TEMP/database-test-results/storage.xml"
