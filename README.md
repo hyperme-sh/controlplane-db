@@ -66,3 +66,16 @@ The PR checks this migration against minimal parent-table fixtures in the
 existing Infra-owned disposable PostgreSQL, including cross-tenant references,
 row-policy refusal and downgrade preservation. The central scheduled database
 adapter also discovers these cases and retains the full older-schema comparison.
+
+## Publication preparation
+
+PR and main qualification fetch the frozen public dependency graph with a fresh
+home and cache, without inherited Git or registry credentials. Source, wheel and
+rebuilt-source checks remain internal build validation; CI does not upload those
+packages or test reports to Actions. Test results remain in job logs.
+
+Distribution preparation follows FyberLabs/infra#993: GHCR containers and moving
+TEST channels. This database library does not define a standalone service
+entrypoint. Its consumer-image preparation, owner and third-party notices,
+history review and older-image review remain separate follow-ups. No package
+release or registry visibility change is made by the anonymous build checks.
