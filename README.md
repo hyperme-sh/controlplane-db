@@ -89,3 +89,7 @@ review. These checks do not change visibility or publish a release.
 Runtime builds do not download or bundle third-party source archives. Owner
 LICENSE/NOTICE and dependency legal texts remain in the image. Source-bundle
 records describe earlier builds only; no separate source container is introduced.
+
+The [retained-history ledger](docs/historical-distributions/README.md) binds
+flagged historical content to exact bytes and conservative dispositions. CI
+rejects inventory drift; this does not grant publication clearance.
