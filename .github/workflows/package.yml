@@ -23,34 +23,26 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - name: Prepare release output
-        run: echo "RELEASE_ARTIFACT_DIR=$(mktemp -d "$RUNNER_TEMP/release-dist.XXXXXX")" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
         with:
+          enable-cache: false
           version: '0.11.26'
           python-version: '3.13'
-      - run: bash scripts/check-package.sh --contracts
+      - name: Qualify public dependencies without inherited credentials
         env:
           TEST_EVIDENCE_DIR: ${{ runner.temp }}/database-test-results
+        run: >-
+          bash scripts/anonymous-command.sh env
+          TEST_EVIDENCE_DIR="$TEST_EVIDENCE_DIR"
+          bash scripts/check-package.sh --contracts
       - name: Qualify storage schema with restricted PostgreSQL roles
         env:
           TEST_DATABASE_URL: postgresql+psycopg://postgres:package-test-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/postgres
-        run: uv run --frozen pytest -v qualification/storage_tests --junitxml="$RUNNER_TEMP/database-test-results/storage.xml"
-      # Retain PR evidence without publishing a tag or release.
-      - name: Retain executed test identities
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: test-results
-          path: ${{ runner.temp }}/database-test-results/*.xml
-          if-no-files-found: error
-          retention-days: 90
-      - name: Retain checked development packages
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: qualified-development-packages
-          path: ${{ env.RELEASE_ARTIFACT_DIR }}/*
-          if-no-files-found: error
-          retention-days: 30
+        run: >-
+          bash scripts/anonymous-command.sh env
+          TEST_DATABASE_URL="$TEST_DATABASE_URL"
+          uv run --frozen --python 3.13 pytest -v qualification/storage_tests
+          --junitxml="$RUNNER_TEMP/database-test-results/storage.xml"
