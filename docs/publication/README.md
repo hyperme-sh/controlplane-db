@@ -28,7 +28,7 @@ It does not cover deleted/unreachable or hidden refs, remote LFS bytes or extern
 archives. No history is rewritten or cleared for redistribution.
 
 Remaining work includes content classification, older-image inventory/review,
-LGPL/MPL source and replacement review, base-image legal/source review and GHCR
+base-image legal/source review and GHCR
 publication activation. Notices and passing scanners alone do not establish
 redistribution clearance. Access, Portal and Infra #946 remain separate work.
 
@@ -39,3 +39,6 @@ The NOTICE addition changes only legal package metadata: CI confirmed the runtim
 contract digest is unchanged. Prior candidate files are retained under
 `releases/qualification/snapshots/pre-notice-*`; current candidate records name
 the newly built wheel bytes without changing version 0.1.0.
+
+The [source and replacement record](../../licenses/SOURCES.md) covers the locked
+psycopg runtime and its native dependencies. It does not grant publication clearance.

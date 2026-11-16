@@ -43,6 +43,10 @@ docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-
   --mount "type=bind,src=$PWD/scripts/runtime_surface.py,dst=/runtime_surface.py,readonly" \
   --mount "type=bind,src=$PWD,dst=/audit-root,readonly" \
   --entrypoint /opt/db/bin/python "$image" -I /audit.py installed /audit-root/src
+docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+  --mount "type=bind,src=$PWD/scripts/prepare_sources.py,dst=/source-check.py,readonly" \
+  --entrypoint /opt/db/bin/python "$image" -I /source-check.py verify /usr/share/doc/controlplane-db/sources
+bash scripts/check-library-replacement.sh "$image"
 printf 'Prepared image %s: %s\n' "$image" "$(docker image inspect "$image" --format '{{.Id}}')"
 
 if [[ -n "${QUALIFIED_IMAGE_OUTPUT:-}" ]]; then

@@ -13,7 +13,14 @@ def known(finding, layers):
 if __name__ == '__main__':
     rows = json.loads(Path(sys.argv[1]).read_text())
     unexpected = [r for r in rows if not known(r, Path(sys.argv[2]))]
-    print(json.dumps({'public_fingerprint_matches': len(rows)-len(unexpected), 'unexpected': len(unexpected)}))
+    fingerprint_count = len(rows) - len(unexpected)
+    from classify_source_findings import classify
+    root = Path(__file__).resolve().parents[1]
+    accepted, unexpected = classify(unexpected, Path(sys.argv[2]),
+        json.loads((root / 'licenses/sources.json').read_text()),
+        json.loads((root / '.github/workflows/source-scan-baseline.json').read_text()))
+    print(json.dumps({'public_source_matches': accepted,
+                     'public_fingerprint_matches': fingerprint_count, 'unexpected': len(unexpected)}))
     for row in unexpected:
         print({k: row.get(k) for k in ('File', 'StartLine', 'RuleID')})
     raise SystemExit(bool(unexpected))
