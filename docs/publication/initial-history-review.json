@@ -1,0 +1,1203 @@
+{
+  "history_findings": [
+    {
+      "kind": "hosted-code",
+      "object": "38ffa4a584e28d59d50feac598ebe453635290be",
+      "path": "src/controlplane_db/_share_lookup_hardening.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8682b646c47dbac7e47777bf4b57f35f934db1fd",
+      "path": "src/controlplane_db/alembic.ini"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1ea85d2545c8b3aaab065a6c92f11c0ca5154d33",
+      "path": "src/controlplane_db/alembic/env.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "14ca254cf407eeb747c9c672d8c337ed2d5e33ee",
+      "path": "src/controlplane_db/alembic/legacy_models.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "fbc4b07dcef98b20c6f96b642097f35e8433258e",
+      "path": "src/controlplane_db/alembic/script.py.mako"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b22299ea4839f9cedd0e32185ec28f1fd03440c0",
+      "path": "src/controlplane_db/alembic/versions/20250330_0001_initial_schema_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "11bda6d330242d9336fab53f9895377b79a85d30",
+      "path": "src/controlplane_db/alembic/versions/20250330_0002_keycloak_sub_nullable_password.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "f9d368d52294338cf3fa762da6c1329a500f4738",
+      "path": "src/controlplane_db/alembic/versions/20250330_0003_user_groups_orgs_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "78ff5f9cbee0679efc89707cddab32b8e4bc9173",
+      "path": "src/controlplane_db/alembic/versions/20250330_0004_tenant_cd_default.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "45586f22c2c4f442b46c7f73a26fd5def7fab0c7",
+      "path": "src/controlplane_db/alembic/versions/20250330_0005_acl_casbin_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2463654a126b0d9295cc1299b0013b39bc4eca5a",
+      "path": "src/controlplane_db/alembic/versions/20250330_0006_sociacl_shr.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "97428a2ec706d582c8a17c06b04d7b1bf62b1634",
+      "path": "src/controlplane_db/alembic/versions/20250330_0007_crypto_bdg.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "e1622b70bc8aa46db07bebcbe7ce6960c334e2fe",
+      "path": "src/controlplane_db/alembic/versions/20250330_0008_marketplace_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "75d86d804aa5bd7954f64179372b872dbd53a580",
+      "path": "src/controlplane_db/alembic/versions/20250330_0009_ai_inference_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "e19acf2279151e786f70eb2f2375c95eb3356c87",
+      "path": "src/controlplane_db/alembic/versions/20250330_0010_marketplace_seller_ai_entitlements_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7c43ea1554785895f01025527413048aa50bd278",
+      "path": "src/controlplane_db/alembic/versions/20250330_0011_api_keys.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "842bd3a0728217e7dbca43d3d447b2cd22169373",
+      "path": "src/controlplane_db/alembic/versions/20260327_0012_hypermesh_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b75df7eba56f03732e23b76345875bdccb01df38",
+      "path": "src/controlplane_db/alembic/versions/20260902_0013_ticket_purpose.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "f1c17405f27fc73c9a599d6e696bcd0b54eef6b4",
+      "path": "src/controlplane_db/alembic/versions/20260907_0014_sell_pause.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "160a3013f08245d846d75145f4d38977b9f602d4",
+      "path": "src/controlplane_db/alembic/versions/20260907_0015_site_machine_tokens.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "f290132d3508cd6f05efe460cf7a6714284d4308",
+      "path": "src/controlplane_db/alembic/versions/20260907_0016_auditor_tickets.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1bdf58e03ed1a67e372f8136db01b201dbde5ad2",
+      "path": "src/controlplane_db/alembic/versions/20260908_0017_device_site_id.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0ea54cccea723d8254290ed20253cdf45edefb8e",
+      "path": "src/controlplane_db/alembic/versions/20260908_0018_plane_role.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "c0295ece694b6426f5b60d95ea2136c0359f06c4",
+      "path": "src/controlplane_db/alembic/versions/20260908_0019_privilege_grants.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "35f0ac0c33edc78735a784b95dd27a8af86a9a51",
+      "path": "src/controlplane_db/alembic/versions/20260912_0020_catalog_image_digest.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "62493ce5ef6d31627b563c46ef2a82ed844ef2b4",
+      "path": "src/controlplane_db/alembic/versions/20260918_0021_user_wallet_bindings.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9b79c815d0b5aec74320a59e231c8ab4b445a274",
+      "path": "src/controlplane_db/alembic/versions/20260918_0022_host_cert_override.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "e6825ed627e2e02dcc70a95dda1e32d55213c6e8",
+      "path": "src/controlplane_db/alembic/versions/20260919_0023_gateway_rename.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "53a9f48d5da8942df190448338f1390918ab8149",
+      "path": "src/controlplane_db/alembic/versions/20260920_0024_lease_audit.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "96f05bf278c01f5e409f20804edf8a9ec889fdcf",
+      "path": "src/controlplane_db/alembic/versions/20260921_0025_aiuditor_rls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7fbe3211d26a11a64d9b5e8734ad5bb2623f4216",
+      "path": "src/controlplane_db/alembic/versions/20260922_0026_scorecards.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "df3951e0c89a7463702f5f9ab5fe2e6eee31e8eb",
+      "path": "src/controlplane_db/alembic/versions/20260922_0027_organization_idp_links.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8cc2d77ec84e1a50c681207f77990498d8816ec4",
+      "path": "src/controlplane_db/alembic/versions/20260922_0028_device_lab.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "17693b19db237ba87fa783f71dea20fae61bb641",
+      "path": "src/controlplane_db/alembic/versions/20260922_0029_aiuditor_program.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "37d427c3c95da632d57a0d14766bae5b508c77af",
+      "path": "src/controlplane_db/alembic/versions/20260922_0030_aiuditor_crawl.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "634dbcfbc1b0d01fb62e85231997116e4177a57c",
+      "path": "src/controlplane_db/alembic/versions/20260922_0031_catalog_origin.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "fbd3bd9f09937023c5bf84206791e2368eb985be",
+      "path": "src/controlplane_db/alembic/versions/20260922_0032_job_source_ref.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3dc4e8103b3760c7949b825f8d103423a1fffc06",
+      "path": "src/controlplane_db/alembic/versions/20260922_0033_admission_sandbox.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8df8c8304f9f2b53a32cc02c1455e031442d53e5",
+      "path": "src/controlplane_db/alembic/versions/20260923_0034_operator_console.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "ed5939be413de5ad24d671acf8723796bfeb5395",
+      "path": "src/controlplane_db/alembic/versions/20260923_0035_operator_indexes.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "41955ec21ac07f835976ea7679e22fcd96108faa",
+      "path": "src/controlplane_db/alembic/versions/20260924_0036_device_wg_pubkey.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "fc154ce702aa3e449af1e1a70bfbd9aa77bd4591",
+      "path": "src/controlplane_db/alembic/versions/20260925_0037_api_key_last_used.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3111e87a50e7b814f0fe6c8583641300dc38a337",
+      "path": "src/controlplane_db/alembic/versions/20260925_0038_aiuditor_size_bytes_bigint.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "32a486b8b1f5f9911af2bcc1d80b37c1e670163e",
+      "path": "src/controlplane_db/alembic/versions/20260925_0039_lab_device_identity.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8348cad457e9ffee323bfd5ad74da524a1db018d",
+      "path": "src/controlplane_db/alembic/versions/20260925_0040_scorecard_host_version.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6e586179ef8e6a79932c838e8219db6285bbff1f",
+      "path": "src/controlplane_db/alembic/versions/20260925_0041_fleet_health.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b8a2e6213a242103d9a49b5d77e48fff896d2cf2",
+      "path": "src/controlplane_db/alembic/versions/20260925_0042_roles_unique_per_tenant.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "37166a1bf8798a230392d2e4311f4b5746dd60bc",
+      "path": "src/controlplane_db/alembic/versions/20260925_0043_device_host_type.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1fecd31b38c228c71932aac326ee66f0c8de584d",
+      "path": "src/controlplane_db/alembic/versions/20260925_0044_pricing_schema.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "530689022c7ce4f4371e652a824f2fdb32ddd0b1",
+      "path": "src/controlplane_db/alembic/versions/20260925_0045_lease_failed_at.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "eb25ca1f2e789d695eb7fe71c4d159134e62c781",
+      "path": "src/controlplane_db/alembic/versions/20260926_0046_controlplane_events.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "676268449231c4324e466183de0dff3893e77190",
+      "path": "src/controlplane_db/alembic/versions/20260926_0047_event_handler_idempotency.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0d30006afec283ba9c24df4e73805504d143f0e9",
+      "path": "src/controlplane_db/alembic/versions/20260926_0048_lab_pull_disk.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7197dd090da29598737ce4ee557f5f31d94e0653",
+      "path": "src/controlplane_db/alembic/versions/20260928_0049_idle_tunnel_lease.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d80fd6c25256899b534a4b929935720bfc822423",
+      "path": "src/controlplane_db/alembic/versions/20260930_0050_host_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "e5651d25c8e172b4a42729f9af024afbf4b4b550",
+      "path": "src/controlplane_db/alembic/versions/20261001_0051_host_org_bindings.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3fd4f1667e44787ae65f3dc0d8d1b1cc9922513e",
+      "path": "src/controlplane_db/alembic/versions/20261001_0052_host_registrations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "073c6621e21ce440f663495d50285ece6c32a024",
+      "path": "src/controlplane_db/alembic/versions/20261001_0053_onboarding_runs.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0a6b4f74a8d16a477477e06f5c5f006d69da592f",
+      "path": "src/controlplane_db/migration_chains/aiuditor/versions/0053_baseline.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "c5e59b0b9bf16eaec5cd3652552083890450b07e",
+      "path": "src/controlplane_db/migration_chains/aiuditor/versions/0054_machine_identity.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7c4af47e07b17f05250edea3490b99951332a5fa",
+      "path": "src/controlplane_db/migration_chains/aiuditor/versions/0055_private_model_admissions.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2c2855c127b0e33bdcdbb2f15e3afd3878e4cfaf",
+      "path": "src/controlplane_db/migration_chains/aiuditor/versions/0056_crawl_state.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "75243f0da0225b648e5d68d7d294d7597bba9f5c",
+      "path": "src/controlplane_db/migration_chains/aiuditor/versions/0057_lab_reports.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "be5682f312016c19154c6330096a0f80437d86d5",
+      "path": "src/controlplane_db/migration_chains/aiuditor/versions/0058_enforcement.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2d66fd5e57eca3110b056f9da941bebb3a4a72e2",
+      "path": "src/controlplane_db/migration_chains/aiuditor/versions/baseline.sql"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "a9d7a5fef334c0d50bab909d8d7c7e9524b638ec",
+      "path": "src/controlplane_db/migration_chains/env.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "800ee0075c7fe693bc0691dd027edbb26cbe14b7",
+      "path": "src/controlplane_db/migration_chains/events/versions/0053_baseline.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "77c31315f0aacd49fc416660177cabb713e0ca3b",
+      "path": "src/controlplane_db/migration_chains/events/versions/0054_source_subscriptions.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "25c190c1a7516b178a2c678fcd59d68dcb970fb1",
+      "path": "src/controlplane_db/migration_chains/events/versions/baseline.sql"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "98d8ba4efaa1cd27426eb81783d8922fc1398d69",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0053_baseline.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "a0f140f6419cb14b338c865ce28889643da11a5e",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0054_model_cache_capacity.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "676a5f4e120dd9478a46260139d89548f0e5134c",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0055_machine_identity.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0ef2770bbbbefd6ddae6b8f0d42087c3d3c3adbe",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0056_site_owner_org.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "13d4b65be7eeb66d3b65ca38523c2b219d53fd87",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0057_lease_usdc_payment.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "947ad5d34b9f537f14911103f338bdcfae4b778b",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0058_live_lease_index.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "e072fa874e57ab3978d0e2f6d1bb5d039a6d4033",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0058_private_model_upload.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "97b9963eb130ba9f2ea77db5efbce667ac649156",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0059_lease_close_requested.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9cffd76fa2421498c785e9ba22fc7a7822e16b7b",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0059_model_inspection.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6e05c509a377537db432b4cf97d49c5e078f6852",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0060_private_model_validation.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b3afbcaccde45a2159a4eb95ba022bb3070ae8df",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0060_safety_flags.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "571c35605f505a94bae0942b754e3e3b7b387bfe",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0061_private_model_lease.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "33edab6c0fb1bbbf922e7be81f8a926b25d4f2da",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0062_model_poll_claims.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2c9ced0f478d12aac77c02592c909a64f02b5208",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0062_payment_callback_claim.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7b70dc36f193b7992cc3bc1863658dd113e5ad50",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0062_private_model_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d46621e21a7eed5b52d1412fa5d2a41843aadf8d",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0063_model_account_budgets.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "23618b49021671c14b63e9d98f875798997bcdf4",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0063_pending_job_index.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "88dc88ff1a397e9426bd33a9bf2774dcb7588fdb",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0064_offer_request.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "ebbab09107678b5a143f03b8fe8ff4bb35b167e6",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0064_protection_registry.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "65bc4d97ca5e70f6519f5a938c2a4fa46a099162",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0065_contract_until.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "f489acfd6a5b4c7dff6a61a9a5cc0db1021a9df1",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0066_receipt_provenance.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "fcdd8234c8e8a2e96e0f7ace8b14f6e631afec93",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0067_processing_fee_policy.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d1f218a79a5da40b76c509da9a502fb720b9698e",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0068_environment_certification.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b050a613635c3e0d9dd2259b4a11d6df02faaf8a",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0069_lab_binding.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "c1de1e4781f6dee374d517703998f073926ee98c",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0069_processing_fee_binding.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3d43039f89d08bc21451357b5ae5062f0888369f",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0070_payout_terms.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6a8f35da4acdbedbfa30253bab6edca5ece2ee77",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0070_violation_ops.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "07c36ee7bda6133055d7d9b2ee5320a41860a021",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0071_captured_fee_guard.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d1ed2de4acd3c0d9d013fa739e21e974f6576874",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0072_lease_certification_receipt.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "c15925f5d5cf0e10e69fcaa1eb782275e5c3caa9",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0073_organization_self_use.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "a5167514ada0141f80cb73c2184214ff15d28164",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0074_model_inactivity_notice.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6b79685cbef58b45d2474da530fa4d4a5a2f0240",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0075_model_owner_closure.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "93604ff3d3ce1eecc939ac0868727d76cd65b011",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0076_training_consent.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2608c9068ff5e2f9f445cf833dea6ecc64f82fd3",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0077_saved_history.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "ecc17b2d5b572d2f4c6c04e42d4ca229a44dd530",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0078_account_admission.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "18b26555fdebbafebc81e3bed269c50a72647111",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0078_certification_evidence.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b7f19e2bc08787e5bbe0bd12a5cba7a1ed2e7543",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0079_account_model_erasure.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "ce12f86f8c7ea311f64497e33d7d88ee35641c7c",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0080_account_financial_fences.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6aa30a58a49cc3c36ee9384795a72cf4fd13b8a3",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0081_financial_inventory.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "80ce7f4547cbc45480c88114f50849507085640b",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0082_personal_hosts.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "4c4a44d7b9fc03cb04ae282461345fab4daa050f",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0083_personal_runtime.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "c92719fcb3b351d4928a2146572d57999cac3886",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0084_model_personal_wait.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3bc4909cdd671068c2c1a9d95c70c447c992db71",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0085_personal_device_reviewers.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "fec1f1a9ce6dabc8fec1a39bae508aaa36578fc9",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0086_financial_state.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8ccdae0770434f0abd7e170348dc53e526f752c4",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0087_closure_lab_merge.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0d53d60783be8bd672806f0326a24420b2767aaf",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/0088_safe_tenant_guc.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "da1b044348a4c71e3bb47ba083fccf9eb2d4de88",
+      "path": "src/controlplane_db/migration_chains/hypermesh/versions/baseline.sql"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0e161307c2b5692dcf6d655b44873165d706dbf9",
+      "path": "src/controlplane_db/migration_chains/manifest.json"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0fef216f4ce7c48e33ef18fd1599a41ff49f0956",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0053_baseline.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9526f94d629a36bbb4d88d4bd099d5bba7160432",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0054_payout_addresses.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "088531957a41f52bedd0c06f1d5734d29dc0ab91",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0055_payout_subject.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "933c9af9d597c829044241a663cc82e4c6a86634",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0056_usdc_journal.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d6d5f31d940e5601665d3193f582828e2700a679",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0057_usdc_intents.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1ebdda2dd6d9cd58d54e6555ff00bbf4b9b93aa9",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0058_usdc_transfers.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6a262f86f0d3943e779c0658a2cf76593b71d4b5",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0059_usdc_outbound.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "931c4c02f478a18bcd14a3340dc422566b4359e0",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0060_onramp_sessions.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "a31c6c93ada824d4badfa98721b3340cf01d97e6",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0061_connect_recipients.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "ae07a5678b39194c299edfc1a21e9bb8d9b013e6",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0062_mismatch_controls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "f2bafbbba558d5047ab8e85d6743a13daad82ee1",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0063_tax_calculations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3b06f10cd0a0d5f38b719e42d7829c19ddb54bb0",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0064_retire_custody.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "f012a4876f855b43bb442ce60086d1fc16dd3f97",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0065_host_payout_method.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "c280f8168e876682d6cb547308a52e117b931906",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0066_fiat_admission.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "67f266394ad7b60ff5eb25948846592d9bee3cf8",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0067_control_proofs.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "564e173a2a1ef97874591d6068f00eed39a7f019",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0068_recipient_adoption.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d5398354c37fc4f182d60a80559da3f023392089",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0069_access_grants.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "39771aeb3f8c4a3cc4845af4f39206a4ed59cdec",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0070_access_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "f8a0262d9de4909d1bbd8343ee62173f6e7afc23",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0071_native_bank_approvals.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "de2fb877bac0a08da243e3bca4fa5fac411cb7ab",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0072_recipient_contact.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "78f84b373e8916534409e31c168d8f65ca93a47e",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0073_fiat_puerto_rico.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2739cd44e8d17ff6498fe9d2d35e400996a9268e",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0074_connect_live_mode.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6e16a2431e71cf41b3699b344d5753f1f30722f0",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0075_reversal_exposure.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "243ec4317ed92195caebe0ead53be1423e5faf42",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0076_account_financial_fences.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "44267d090daa2ca5d9ea8918ffb979d56179edf4",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0077_financial_inventory.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3c2b33e093af8a3fe8b76389c743dd5cffc3b8e3",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0078_personal_access.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9554313886bdb1bbc821768371b9cbbe5c454e88",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0079_payer_risk_expiry.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "dce64d005c682830499e64d01483de9a9cf160cb",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0080_financial_state.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b96d674d0a839f47623757cf05da761ba481ee9c",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0081_payout_locations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6933e0d8e6883cab34942ce3b581f48e3d903cd4",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0081_test_delete_guards.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "5ea61642e97fde430009944ad2d58be2be78e237",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0082_test_location_merge.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "793535dab0489eca53ca176506a1b3c5246479fb",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/baseline.sql"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "33e2311b7bc5c2c9927bddf9ae5b259011741c24",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0053_baseline.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7ed6e88857aee28ef8f57752d5f500e1d273068b",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0054_subject_memberships.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "5055a3b1316099666231e2be896d3d6f278fba0f",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0055_sociacl_keyring_state.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "cb280c1c4e915d06542ecab46aac4cffe3bdd4e3",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0056_sociacl_witness_policy.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d3e88a3a59d4ebd8d6c4379235aedee80d442e0c",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0057_checkpoint_requests.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "849a4907cd6aaa6dc3614ee64f65a66b81048b13",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0057_share_lookup_hardening.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1b2caa02e27f3a0491b91b73ce5acd1e43e47d00",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0058_account_closure_requests.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "64ce5fade56684533ce3abfe27a94e8a75d1fee5",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0059_account_lifecycles.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9b1aa10c5cdf027bccaf9e428fede5d14e31310c",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0060_account_admission.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1d7ec0ac7c223670bbae0919ff07ee78280be5f9",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0061_financial_erasure_guard.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "4fee7f3f89f5aaf1f6f26d8ce18d5cf2062877e9",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0062_billing_financial_clock.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "4f90223f8c278029cfedcc2da1f21694481f5209",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0063_anonymous_accounting.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "e7d01bec39663ee7d797bfaa1f2e04bdf22f7698",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0064_auth_admission.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "5616d5967000af88d7934c879c138dca0a3fa2e7",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0065_financial_epochs.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "4ec467f6e5e2ed865c15e124536f42f0fbe04c96",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0066_person_reference_admission.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "cfbaf80e9cae76d5c62634afbd581160f3674258",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0067_financial_inventory.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "42418e680ba44726ffab78f0ae941fc794ea5c42",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0068_inventory_gate.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1ab9677a6eedb52b253b3c19126f71df8add40af",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0069_personal_scope.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7e17d5362386a5be56c9ad68411de431c40ec5aa",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0070_personal_renter_scope.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2cdd585ddee5b11763ee3499c4b3b60840e24e40",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0071_model_personal_wait.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "44fea322b4378778bf256911c5dcf20412b5224e",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0072_financial_gc_primitives.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "41ddb6f28cc7a6ecb22c7674ac2121764e380c54",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0073_personal_access_bridge.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "a8303e0ae7d5265e945cb43a428628df787ea4aa",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0074_paid_plan_creator.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b65a1e16086f5d7c3f9faeb6f414e2c0baf1434c",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0075_company_creator_refs.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "5078f32cd26e6c640a49ca5ff07e3a10e6b9bdee",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0076_closure_worker_preflight.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1c17a35bc94857099d70b7561b58fe7ea157a2b6",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0077_payer_risk_gc.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0296eed6ecce62fd1281a6509687cd94b54bb11e",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0078_empty_financial_completion.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "480b66f3c49305949182c4b866e3ccd83e12f61b",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0079_closure_share_lookup_merge.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b4bb743455b0cf56c1585afe346c5a4fff2f6fb8",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0080_test_retention.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "99661d0e6cba16d165d91ab33d918ec1dcf5de06",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0081_test_retention_authority.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "24ec60263581c37b1e1596287a4e6d64bdb798fa",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0082_billing_stripe_mode.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9432809fba00daa370de759dd1ee0fecc63a36cd",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0083_stripe_ancestry.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7f642b4e33772bde2aeeb5d433d2e111dacca411",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0083_stripe_scope.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "5414ad69843a7109322980a90d0bb6bbb0c80420",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0084_stripe_provenance_clock.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "bf0bf28e6610947de97d1427b638f46f9fbbc117",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0085_stripe_history_merge.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1c0f653844252f18318c85270b25e1339315b03f",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0086_contact_lanes.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "771a24e10b9f9cbd6064c3dd566464309a88053c",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0087_first_contact.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3b06bddc935f1fde4e66fde57e4187231cefc55e",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0088_org_user_memberships.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "657d3ef6a3471e5d290f75fad9243b64545cf1f4",
+      "path": "src/controlplane_db/migration_chains/platform/versions/baseline.sql"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8f5266054ba23f77bbd42c25c77259d66fc5b76b",
+      "path": "src/controlplane_db/migration_chains/platform/versions/test_retention_authority.sql"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d8d30118860fc06535675973e66c3d2b82892b78",
+      "path": "src/controlplane_db/migration_chains/startup-tables.json"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "029c390cb988f9c0cfd01961e8273efc3bdc66ac",
+      "path": "src/controlplane_db/migrations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "bd24aaf2cb281487f70433689f1bdcb86a9e4567",
+      "path": "src/controlplane_db/startup.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "e1a9adaf85e099a0761f550803d1ebeb280013c4",
+      "path": "src/controlplane_db/test_retention.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "5b7d5d85fd13d3c8e8403f2bd677f85a84acb055",
+      "path": "src/controlplane_db/startup.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "2cf9d49d98260c1b5d7f580cfeb0f7443f0cce5a",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0080_test_retention.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "b8b555ca3d8cc90c10bd08c78b7fec2cc9a2dea8",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0062_mismatch_controls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "863809537718bf83db6ac38007e8b5fc9a002327",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0064_retire_custody.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1cf907a98fb9ab352cd4238c48b007680e5c83c9",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0069_access_grants.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "d63df3ea3c8d1d450ddabf3c92ad3eed1a17ec61",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0070_access_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "a387e064c2d3e0996469e7abff4825c2afa05b01",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0076_account_financial_fences.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6bd869f00af9f90dd7375a99ce7aea6ce445b239",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0079_payer_risk_expiry.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "3ddf5694593313ba2196501263e1aa64ccb2fe1d",
+      "path": "src/controlplane_db/migration_chains/payment_service/versions/0081_test_delete_guards.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "7664117f1f0d36077eabab75fb93a88472dbb939",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0080_test_retention.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "883538271b00b9241b060a1c107714360dd26f9c",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0081_test_retention_authority.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "77d39ed1b9cd9040c05a6fa8abb0585df2788512",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0082_billing_stripe_mode.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "43fdf23782719ebd36302ba5110bcacff33aa5ca",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0083_stripe_scope.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "cb6d3dd4a0c919a02dfad8ac021477419b0a8818",
+      "path": "src/controlplane_db/migration_chains/platform/versions/0084_stripe_provenance_clock.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9a6866ed76ad853104d825f851218cb16e0ac67e",
+      "path": "src/controlplane_db/billing_store.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "738aae6d94bee448af64c919422b02a3fd20adaa",
+      "path": "src/controlplane_db/payment_store.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "9710ee9c3a0e8680f221b82869aa37cf3b10bccd",
+      "path": "src/controlplane_db/migration_chains/manifest.json"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "1506073b0a6882fcca97a759d7c095360dda0a36",
+      "path": "src/controlplane_db/migrations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "49522b9fcdb9f0872aaa094a1c40a8589a658783",
+      "path": "src/controlplane_db/migration_chains/manifest.json"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "cc987ddb7f380d61b627ec2a1065096cd96f6317",
+      "path": "src/controlplane_db/alembic/legacy_models.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "fe9a1ed175d46b4cb79adecddb7eee730658ede6",
+      "path": "src/controlplane_db/startup.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "df0aee66e0f24a6f08a4337255fe235e9e3aee8b",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0070_access_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "733b6d5f39bbf78ef79d55de89f81c27b410bfab",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0070_access_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "cc19d123befe7ff154a8cb6d5adbc6de7e21305c",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0070_access_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8bf40dcc1a8146db7d3cb130799198af36ac729b",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0070_access_lifecycle.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "784ddd862315bf294ad5cc671d925b4265ced2b3",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0069_access_grants.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "73aebea4723b179da9a24f7e5a049b2b3c2a85cd",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0069_access_grants.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "a88e9872c8f0a7d87650c26f39833162a3e89611",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0068_recipient_adoption.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "0a1fb1e6e04702a186eb745fe7e8d7df512d3c1c",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0063_tax_calculations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "dd3490a1ae0e51db5a4a1267c866371290aafec0",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0063_tax_calculations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "65ef0969daa0fcd7864a7a9f537b19af8d563d3d",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0063_tax_calculations.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "848553e84f9dfeaabd5114ee8a706c7821d3479d",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0062_mismatch_controls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "6358a31814a45ccd92e4903e2f9bac102db5120e",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0062_mismatch_controls.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "19ce5564899ab04d28eb852d049dac090ab7bce3",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0060_onramp_sessions.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "cac678d9214229b6aa2204850b6724059f4b1485",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0058_usdc_transfers.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "8b8d9efb5318972118f438c7a19f114e0e2a15bd",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0057_usdc_intents.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "33d5ff9059bb902a70ab59e91ec2450c1b2e57f8",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0056_usdc_journal.py"
+    },
+    {
+      "kind": "hosted-code",
+      "object": "be7b8f0feb8a51f19dc6c8103f13c96337a24475",
+      "path": "core/lib/controlplane-db/src/controlplane_db/migration_chains/payment_service/versions/0054_payout_addresses.py"
+    }
+  ],
+  "limitations": "No unreachable/deleted refs, hidden server refs, remote LFS bytes or external archives; automated scans do not replace human review",
+  "refs": {
+    "HEAD": "f094f81b248157ef8e9812260746ed75bd62df18",
+    "refs/remotes/origin/HEAD": "f094f81b248157ef8e9812260746ed75bd62df18",
+    "refs/remotes/origin/codex/993-db-anonymous-preparation": "6d8c1c9ce820270f83389ca872ed43e9909e9910",
+    "refs/remotes/origin/main": "f094f81b248157ef8e9812260746ed75bd62df18",
+    "refs/tags/0.24.0-test.0": "33e43600cb8a3aeda6f02e89af49700a9c5435f6",
+    "refs/tags/0.24.0-test.1": "67e0dcd97abb2a83a13a0bf353e925778abd0aec",
+    "refs/tags/0.24.0-test.10": "350cdcbaa459f6a6ca330d10aeec77021c713497",
+    "refs/tags/0.24.0-test.11": "dfbe959af5a3ec93cb2853be16eaba172278dd25",
+    "refs/tags/0.24.0-test.12": "07cef762f89552051a9e789ecd2e391670944175",
+    "refs/tags/0.24.0-test.13": "ae7d463116a175331f07917ccb58639a886dd471",
+    "refs/tags/0.24.0-test.14": "22cdc0ed19c49ac5558d0de95cfe615a110fd287",
+    "refs/tags/0.24.0-test.15": "d6866223ceb0ec1c32bc833b3d3f0410e5790786",
+    "refs/tags/0.24.0-test.16": "fa3db3c95305a1c559b7f05f0e2161606e5901c3",
+    "refs/tags/0.24.0-test.17": "799380562072fdeb4cddc9be3390ce5197de08c1",
+    "refs/tags/0.24.0-test.18": "aba6075f979513b40d89a6c5fe0dd99a0c60ad77",
+    "refs/tags/0.24.0-test.19": "f60b1596eb8860ae39336c4f0d84ef80350f3e42",
+    "refs/tags/0.24.0-test.2": "79031ce22c2dee0a7c84c12570984b0684fa5136",
+    "refs/tags/0.24.0-test.20": "8fa71d57fe0a7901ee53db226a2f9c685373c100",
+    "refs/tags/0.24.0-test.21": "10700d4ed2525216e475fee4f7fd573a0da9323b",
+    "refs/tags/0.24.0-test.3": "cb7831a29b25c74dfbbd2a0aa2b6778da2b9e5d6",
+    "refs/tags/0.24.0-test.4": "f61111fefdd07afa78286249c9a8bf3551f3d607",
+    "refs/tags/0.24.0-test.5": "76a1a9ec021444d792fa6e3ff18037856d713c42",
+    "refs/tags/0.24.0-test.6": "17fd89c8739be896af6c332585e31d1e30876554",
+    "refs/tags/0.24.0-test.7": "5b097f4bddcbfd27ab8fb51bc00821ea57f939c1",
+    "refs/tags/0.24.0-test.8": "97b2b1bf144a7330b071da9254de0952ec55e892",
+    "refs/tags/0.24.0-test.9": "8c2b9cacdbe5c57d29dcb6e2ad6231414f4c25fc",
+    "refs/tags/test-0c40e252bd734a234fbfa6386f6f2214cec40b54": "0c40e252bd734a234fbfa6386f6f2214cec40b54",
+    "refs/tags/test-4fd49fca792055a4d82263b54247f78710c376fb": "4fd49fca792055a4d82263b54247f78710c376fb",
+    "refs/tags/test-547db7a6f7eac76b666b88dc117aeda06fe7e711": "547db7a6f7eac76b666b88dc117aeda06fe7e711",
+    "refs/tags/test-58e580d639061c8dcdf9cc65b94b44be17c5b576": "58e580d639061c8dcdf9cc65b94b44be17c5b576",
+    "refs/tags/test-68dcbc4ec849e4ff405ccb84463daf9a981458a3": "68dcbc4ec849e4ff405ccb84463daf9a981458a3",
+    "refs/tags/test-6ee52fe3e775548956cada649715fdde80f6cd1d": "6ee52fe3e775548956cada649715fdde80f6cd1d",
+    "refs/tags/test-9172437f7c48d7e5f3abbc1de4ef059f858570df": "9172437f7c48d7e5f3abbc1de4ef059f858570df",
+    "refs/tags/test-bb53e48dc7abeb81bb22f0586d9966f91c4818e7": "bb53e48dc7abeb81bb22f0586d9966f91c4818e7",
+    "refs/tags/test-ed3fbe5ec4e70f097f61815c40ea300abc6b7ee6": "ed3fbe5ec4e70f097f61815c40ea300abc6b7ee6",
+    "refs/tags/test-ef2e1d7728b24404572f1c0e7a77db9c2cce39bd": "ef2e1d7728b24404572f1c0e7a77db9c2cce39bd",
+    "refs/tags/v0.24.0": "58e580d639061c8dcdf9cc65b94b44be17c5b576"
+  },
+  "scanned_objects": 1064,
+  "schema_version": 1,
+  "scope": "HEAD plus fetched origin branches and tags; includes archived wheel members",
+  "source_publication_ready": false
+}

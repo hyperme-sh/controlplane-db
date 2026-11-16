@@ -43,6 +43,11 @@ fi
 uv build --out-dir "$scratch/dist"
 uv run --frozen python scripts/verify_wheel.py "$scratch/dist"
 uv run --frozen python scripts/export_release_contract.py "$scratch"/dist/*.whl --output "$scratch/contract"
+uv run --frozen python - "$scratch/contract/evidence.json" <<'PYTHON'
+import json, sys
+record = json.load(open(sys.argv[1]))
+print('BUILT_PACKAGE=' + json.dumps({key: record[key] for key in ('version', 'wheel_sha256', 'contract_sha256')}))
+PYTHON
 for qualified_manifest in releases/qualification/current/release.json releases/candidate/release.json; do
 if [[ -f "$qualified_manifest" ]]; then
   uv run --frozen python scripts/verify_release_candidate.py "$qualified_manifest" "$scratch/contract/contract.json" "$scratch/contract/evidence.json" controlplane-db
