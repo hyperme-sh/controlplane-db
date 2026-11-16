@@ -1,3 +1,7 @@
+> Superseded: runtime images no longer download or include source archives.
+> LICENSE/NOTICE and dependency legal texts remain. The records below describe
+> prior builds and are retained for historical review, not current build steps.
+
 # DB source and replacement preparation
 
 The runtime image contains psycopg and psycopg-binary 3.3.6 (LGPL-3.0).
