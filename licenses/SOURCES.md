@@ -4,10 +4,10 @@ The runtime image contains psycopg and psycopg-binary 3.3.6 (LGPL-3.0).
 Certifi is a development dependency and is absent from the runtime image.
 The existing GPL-3.0 supplement and original LGPL/libxcrypt notices remain.
 
-The image carries 13 checksum-bound source/build materials under
+The image carries 14 checksum-bound source/build materials under
 `/usr/share/doc/controlplane-db/sources`, including the psycopg source release,
 upstream build recipes, mapped native library sources and the original libcrypt
-layer used for comparison. `sources.json` binds these to the exact CPython 3.13
+layer used for comparison, plus matching CPython source. `sources.json` binds these to the exact CPython 3.13
 Linux amd64 wheel hash, installed native members and its SBOM. All 15 bundled
 native libraries have source mappings. Build and final-image checks reject
 changed package versions, archive bytes, native bytes, SBOM or file inventory.
@@ -33,6 +33,6 @@ Upstream archives retain their public test vectors and example keys. Scanner
 exceptions require the exact whole archive, member bytes, rule and start line
 under the source-bundle image path. Runtime files and changed sources are not
 exempt. RPM sources are carried unchanged; recursive RPM payload scanning,
-bit-identical native rebuilds and full base-image source/legal review are not
-claimed. History classification, older-image review and publication remain
+bit-identical native rebuilds and Debian source archive bundling are not
+claimed. See BASE.md for the base inventory and CPython pairing. History classification, older-image review and publication remain
 separate; publication clearance remains false.
