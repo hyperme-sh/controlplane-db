@@ -110,6 +110,16 @@ def inventory(request, versions=()):
             'scope': 'Tagged and untagged retained package versions plus current tags; Linux amd64; no deleted versions or other registries'}
 
 
+def unavailable(exc):
+    url = urllib.parse.urlsplit(exc.url)
+    endpoints = {
+        ('ghcr.io', '/token'),
+        ('ghcr.io', '/v2/' + REPOSITORY + '/tags/list'),
+        ('api.github.com', '/orgs/hyperme-sh/packages/container/controlplane-db%2Fruntime/versions'),
+    }
+    return exc.code in (401, 403, 404) and (url.netloc, url.path) in endpoints
+
+
 def main(output):
     credentials = base64.b64encode((os.environ['REGISTRY_USER'] + ':' + os.environ['REGISTRY_TOKEN']).encode()).decode()
     url = BASE + '/token?service=ghcr.io&scope=repository:' + REPOSITORY + ':pull'
@@ -148,8 +158,7 @@ if __name__ == '__main__':
     except urllib.error.HTTPError as exc:
         if os.environ.get('REQUIRE_REGISTRY_INVENTORY') == '1':
             raise
-        path = urllib.parse.urlsplit(exc.url).path
-        if exc.code not in (401, 403, 404) or path not in ('/token', '/v2/' + REPOSITORY + '/tags/list'):
+        if not unavailable(exc):
             raise
         # GHCR can conceal private or absent packages with the same response.
         print('REGISTRY_REVIEW_UNAVAILABLE=' + json.dumps({'http_status': exc.code, 'repository': REPOSITORY, 'publication_cleared': False, 'absence_verified': False}))
