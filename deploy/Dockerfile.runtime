@@ -9,9 +9,13 @@ RUN uv pip install --python /opt/db/bin/python --no-deps ./*.whl && uv pip check
 COPY licenses/ ./licenses/
 COPY prepare_notices.py ./
 RUN /opt/db/bin/python -I prepare_notices.py /opt/notices licenses
+COPY sources/ /opt/sources/
+COPY prepare_sources.py ./
+RUN /opt/db/bin/python -I prepare_sources.py verify /opt/sources
 
 FROM python:3.13-slim-bookworm@sha256:a5a7017efc5969e00ae2b91c8eb0631049a569652aa4ffc4501769049ae45c72
 COPY --from=build /opt/db /opt/db
+COPY --from=build /opt/sources /usr/share/doc/controlplane-db/sources
 COPY --from=build /opt/notices /usr/share/doc/controlplane-db/third-party
 COPY LICENSE NOTICE /usr/share/doc/controlplane-db/
 ENV PATH=/opt/db/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
