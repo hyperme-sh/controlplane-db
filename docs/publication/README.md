@@ -31,3 +31,11 @@ Remaining work includes content classification, older-image inventory/review,
 LGPL/MPL source and replacement review, base-image legal/source review and GHCR
 publication activation. Notices and passing scanners alone do not establish
 redistribution clearance. Access, Portal and Infra #946 remain separate work.
+
+The 236 initial secret-scanner matches are SHA-256 entries in retained migration
+inventories, each verified against reachable source bytes. Exceptions bind the
+whole exported blob hash, rule and start/end lines; new coordinates fail CI.
+The NOTICE addition changes only legal package metadata: CI confirmed the runtime
+contract digest is unchanged. Prior candidate files are retained under
+`releases/qualification/snapshots/pre-notice-*`; current candidate records name
+the newly built wheel bytes without changing version 0.1.0.
