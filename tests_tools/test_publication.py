@@ -55,3 +55,13 @@ def test_active_publication_is_main_only_and_test_only():
     assert 'cancel-in-progress: false' in workflow
     assert workflow.index('bash scripts/check-container.sh') < workflow.index('docker login')
     assert 'upload-artifact' not in workflow
+
+
+def test_stale_main_lookup_uses_scoped_authentication():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / '.github/workflows/ghcr-test.yml').read_text()
+    assert 'git ls-remote' not in workflow
+    assert 'https://api.github.com/repos/hyperme-sh/controlplane-db/git/ref/heads/main' in workflow
+    assert "'Authorization': 'Bearer ' + os.environ['GHCR_TOKEN']" in workflow
+    assert 'build_opener(NoRedirects())' in workflow
+    assert '"$current" != "$GITHUB_SHA"' in workflow

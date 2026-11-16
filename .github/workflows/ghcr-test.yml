@@ -70,7 +70,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          current=$(git ls-remote origin refs/heads/main | cut -f1)
+          current=$(python3 - <<'PYTHON'
+          import json, os, urllib.request
+          class NoRedirects(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  raise ValueError('Authenticated main-ref redirects are refused')
+          request = urllib.request.Request('https://api.github.com/repos/hyperme-sh/controlplane-db/git/ref/heads/main',
+              headers={'Authorization': 'Bearer ' + os.environ['GHCR_TOKEN'], 'Accept': 'application/vnd.github+json'})
+          with urllib.request.build_opener(NoRedirects()).open(request, timeout=30) as response:
+              print(json.load(response)['object']['sha'])
+          PYTHON
+          )
           if [[ "$current" != "$GITHUB_SHA" ]]; then
             echo 'Newer main exists; skip stale TEST publication'
             exit 0
