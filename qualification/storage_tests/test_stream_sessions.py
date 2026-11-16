@@ -12,7 +12,7 @@ migrate=importlib.util.module_from_spec(spec);spec.loader.exec_module(migrate)
 pytestmark=pytest.mark.integration
 
 
-def setup(database, budget=32*1024**3):
+def setup(database, budget=32_000_000_000):
     owner,app,schema,runtime=database
     assert migrate.apply(owner,schema,runtime)
     assert not migrate.apply(owner,schema,runtime)
@@ -24,9 +24,9 @@ def setup(database, budget=32*1024**3):
     return tenant,generation
 
 
-def insert(app,tenant,generation,room='room',action='publish',path=None,ip='192.0.2.1'):
-    rid=uuid.uuid4();now=int(app.execute('SELECT extract(epoch FROM clock_timestamp())').fetchone()[0])
-    end=min(now+60,(now//86400+1)*86400)
+def insert(app,tenant,generation,room='room',action='publish',path=None,ip='192.0.2.1', seconds=60, issued=None):
+    rid=uuid.uuid4();now=issued if issued is not None else int(app.execute('SELECT extract(epoch FROM clock_timestamp())').fetchone()[0])
+    end=min(now+seconds,(now//86400+1)*86400)
     if action=='read':
         found=app.execute("SELECT expires_at FROM stream_sessions WHERE tenant_id=%s AND path=%s AND action='publish' AND phase=1",(tenant,path)).fetchone()
         if found:end=min(end,found[0])
@@ -72,17 +72,11 @@ def test_policy_scope_and_single_use_session(database):
 
 
 def test_closed_sessions_do_not_refund_daily_budget(database):
-    owner,app,_,_=database;tenant,generation=setup(database,1407600000)
-    # Charge a full hour, then close it. Neither close nor a new process refunds it.
-    rid,path=insert(app,tenant,generation)
-    owner.execute('UPDATE stream_policies SET daily_bytes=1407600000')
+    owner,app,_,_=database;tenant,generation=setup(database,391000)
+    now=int(app.execute('SELECT extract(epoch FROM clock_timestamp())').fetchone()[0])
+    insert(app,tenant,generation,seconds=1,issued=now)
     app.execute('UPDATE stream_sessions SET phase=2')
-    # Repeated short admissions must eventually hit the finite cap.
-    refused=False
-    for _ in range(100):
-        try:insert(app,tenant,generation)
-        except psycopg.errors.RaiseException:
-            refused=True;break
-        app.execute('UPDATE stream_sessions SET phase=2 WHERE phase<>2')
-    assert refused
-    assert app.execute('SELECT sum(reserved_bytes) FROM stream_sessions').fetchone()[0]<=1407600000
+    # Same fixed UTC accounting day, even if the wall clock crosses midnight.
+    with pytest.raises(psycopg.errors.RaiseException,match='daily capacity'):
+        insert(app,tenant,generation,seconds=1,issued=now)
+    assert app.execute('SELECT sum(reserved_bytes) FROM stream_sessions').fetchone()[0]==391000

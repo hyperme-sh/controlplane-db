@@ -1,7 +1,7 @@
 -- Explicitly installed private streaming metadata. Never installed at startup.
 CREATE TABLE stream_policies (
     tenant_id uuid PRIMARY KEY REFERENCES tenants(id),
-    daily_bytes bigint NOT NULL CHECK (daily_bytes BETWEEN 1407600000 AND 1099511627776),
+    daily_bytes bigint NOT NULL CHECK (daily_bytes BETWEEN 391000 AND 1099511627776),
     generation uuid NOT NULL CHECK (generation <> '00000000-0000-0000-0000-000000000000'),
     enabled boolean NOT NULL DEFAULT false
 );
