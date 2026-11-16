@@ -28,7 +28,7 @@ It does not cover deleted/unreachable or hidden refs, remote LFS bytes or extern
 archives. No history is rewritten or cleared for redistribution.
 
 Remaining work includes content classification, older-image inventory/review,
-base-image legal/source review and GHCR
+Debian source archive bundling and GHCR
 publication activation. Notices and passing scanners alone do not establish
 redistribution clearance. Access, Portal and Infra #946 remain separate work.
 
@@ -42,3 +42,6 @@ the newly built wheel bytes without changing version 0.1.0.
 
 The [source and replacement record](../../licenses/SOURCES.md) covers the locked
 psycopg runtime and its native dependencies. It does not grant publication clearance.
+
+[Base-image review](../../licenses/BASE.md) records the installed Debian/legal
+inventory and matching CPython source.
